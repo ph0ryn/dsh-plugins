@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { getDshRuntimeVersion } from "@deepseek-ai/dsh-app-boot";
 import { AuthorizationDeclinedError } from "@deepseek-ai/dsh-authorization";
 import { UserQuestionError } from "@deepseek-ai/dsh-user-questions";
+import z from "@deepseek-ai/schemastery";
 
 import { Accounts, KEY, hostId } from "./accounts.ts";
 import { ChatGPTAdapter } from "./adapter.ts";
@@ -17,14 +18,24 @@ import {
   signIn,
   type Account,
 } from "./oauth.ts";
+import { createSiwcSearchProvider } from "./search.ts";
+import { registerSiwcSettings } from "./settings.ts";
 
-import type { Context } from "@deepseek-ai/cordis";
+import type { Context, Volatile } from "@deepseek-ai/cordis";
 import type { AuthorizationNotice, AuthorizationSession } from "@deepseek-ai/dsh-authorization";
 import type {} from "@deepseek-ai/dsh-commands";
+import type {} from "@deepseek-ai/dsh-settings";
 import type {} from "@deepseek-ai/dsh-user-questions";
 
 export const name = "siwc";
 export const inject = ["credentials", "authorization", "llm"];
+
+export interface Config {
+  searchModel: Volatile<string>;
+}
+export const Config = z.object({
+  searchModel: z.string().default("").volatile(),
+});
 
 const EXPECTED_DSH_VERSIONS = [
   "0.2.1-alpha.2",
@@ -68,7 +79,7 @@ async function refreshModels(ctx: Context, accounts: Accounts): Promise<void> {
   });
 }
 
-export async function apply(ctx: Context): Promise<void> {
+export async function apply(ctx: Context, config: Config): Promise<void> {
   const version = getDshRuntimeVersion();
   if (!EXPECTED_DSH_VERSIONS.includes(version)) {
     ctx.logger.warn(
@@ -81,6 +92,15 @@ export async function apply(ctx: Context): Promise<void> {
   await refreshModels(ctx, accounts);
   const adapter = new ChatGPTAdapter(ctx, accounts);
   ctx.llm.registerAdapter(["openai"], adapter);
+  ctx.inject(["web"], (scope) => {
+    scope.web.registerSearchProvider(
+      createSiwcSearchProvider(accounts, () => config.searchModel.get()),
+    );
+  });
+  ctx.inject(["connection"], (scope) => registerSiwcSettings(scope, accounts));
+  ctx.inject(["settings"], (scope) => {
+    scope.effect(() => scope.settings.configure({ auto: false }, ctx.fiber));
+  });
 
   async function authorize(session: AuthorizationSession) {
     const state = await accounts.read();
