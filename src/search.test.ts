@@ -74,6 +74,8 @@ const completed = (output: unknown[] = [searchCall, message]) => ({
   type: "response.completed",
   response: { id: "resp_one", status: "completed", output },
 });
+const finalized = (output: readonly unknown[] = [searchCall, message]) =>
+  output.map((item, output_index) => ({ type: "response.output_item.done", output_index, item }));
 function sse(events: unknown[]) {
   return new Response(events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join(""), {
     headers: { "content-type": "text/event-stream", "x-request-id": "req_fixture" },
@@ -154,6 +156,101 @@ test("SIWC search uses the public Responses wire contract and portable citations
     await f.close();
   }
 });
+
+test("SIWC assembles completed output items when the terminal response has an empty output", async () => {
+  // Observed on the public SIWC Responses endpoint: the completed snapshot is compact,
+  // while output_item.done carries both the hosted search and the cited answer.
+  const f = await fixture(() => sse([...finalized(), completed([])]));
+  try {
+    const result = await f.ctx.web.search({ query: "fixture", maxResults: 1 });
+    assert.equal(
+      result.content,
+      "Read this [report](<https://example.test/article#top>) and more.",
+    );
+    assert.deepEqual(result.sources, [
+      { url: "https://example.test/article#top", title: "Original report" },
+    ]);
+    assert.equal(result.truncated, true);
+    assert.equal(f.requests.length, 1);
+  } finally {
+    await f.close();
+  }
+});
+
+test("SIWC does not duplicate output when the terminal response contains the full snapshot", async () => {
+  const f = await fixture(() => sse([...finalized(), completed()]));
+  try {
+    const result = await f.ctx.web.search({ query: "fixture" });
+    assert.equal(
+      result.content,
+      "Read this [report](<https://example.test/article#top>) and more.",
+    );
+    assert.equal(result.sources.length, 2);
+  } finally {
+    await f.close();
+  }
+});
+
+test("SIWC orders streamed output by index rather than arrival order", async () => {
+  const last = {
+    ...message,
+    id: "msg_last",
+    content: [{ type: "output_text", text: "Second paragraph.", annotations: [] }],
+  };
+  const f = await fixture(() =>
+    sse([
+      { type: "response.output_item.done", output_index: 2, item: last },
+      { type: "response.output_item.done", output_index: 1, item: message },
+      { type: "response.output_item.done", output_index: 0, item: searchCall },
+      completed([]),
+    ]),
+  );
+  try {
+    assert.equal(
+      (await f.ctx.web.search({ query: "fixture" })).content,
+      "Read this [report](<https://example.test/article#top>) and more.\n\nSecond paragraph.",
+    );
+  } finally {
+    await f.close();
+  }
+});
+
+for (const [name, output, ending, code] of [
+  [
+    "failed response",
+    [searchCall, message],
+    { type: "response.failed", response: { status: "failed", error: { code: "server_error" } } },
+    "server_error",
+  ],
+  [
+    "incomplete response",
+    [searchCall, message],
+    { type: "response.incomplete", response: { status: "incomplete" } },
+    "SIWC_SEARCH_INCOMPLETE",
+  ],
+  ["missing search", [message], completed([]), "SIWC_SEARCH_NOT_EXECUTED"],
+  [
+    "failed search",
+    [{ ...searchCall, status: "failed" }, message],
+    completed([]),
+    "SIWC_SEARCH_NOT_EXECUTED",
+  ],
+  [
+    "authoritative failed terminal search",
+    [searchCall, message],
+    completed([{ ...searchCall, status: "failed" }, message]),
+    "SIWC_SEARCH_NOT_EXECUTED",
+  ],
+] as const) {
+  test(`SIWC finalized stream items do not hide ${name}`, async () => {
+    const f = await fixture(() => sse([...finalized(output), ending]));
+    try {
+      await assert.rejects(f.ctx.web.search({ query: "fixture" }), { code });
+    } finally {
+      await f.close();
+    }
+  });
+}
 
 test("SIWC does not inherit API-key endpoint, organization or project settings", async () => {
   const values = {
@@ -314,14 +411,7 @@ for (const [name, events, code] of [
     [{ type: "error", code: "subscription_sharing_user_unavailable", message: SECRET }],
     "subscription_sharing_user_unavailable",
   ],
-  [
-    "EOF after output",
-    [
-      { type: "response.output_item.done", item: searchCall },
-      { type: "response.output_item.done", item: message },
-    ],
-    "SIWC_SEARCH_INCOMPLETE",
-  ],
+  ["EOF after output", [...finalized()], "SIWC_SEARCH_INCOMPLETE"],
   [
     "mismatched terminal status",
     [{ ...completed(), response: { ...completed().response, status: "in_progress" } }],

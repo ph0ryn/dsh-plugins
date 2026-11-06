@@ -31,8 +31,8 @@ function markdownUrl(value: string): string {
   return value.replace(/</g, "%3C").replace(/>/g, "%3E");
 }
 
-function result(response: OpenAIResponse): WebSearchResult {
-  const searches = response.output.filter((item) => item.type === "web_search_call");
+function result(output: OpenAIResponse["output"]): WebSearchResult {
+  const searches = output.filter((item) => item.type === "web_search_call");
   if (!searches.some((item) => item.status === "completed" && item.action.type === "search"))
     throw new WebError("ChatGPT did not complete a web search.", "SIWC_SEARCH_NOT_EXECUTED");
 
@@ -53,7 +53,7 @@ function result(response: OpenAIResponse): WebSearchResult {
   }
 
   const text: string[] = [];
-  for (const item of response.output) {
+  for (const item of output) {
     if (item.type !== "message") continue;
     for (const part of item.content) {
       if (part.type !== "output_text") continue;
@@ -173,11 +173,14 @@ export function createSiwcSearchProvider(
         requestId = safeField(request_id, /^[A-Za-z0-9_-]{1,200}$/);
         responseStatus = httpResponse.status;
         let completed: OpenAIResponse | undefined;
+        const outputItems = new Map<number, OpenAIResponse["output"][number]>();
         for await (const event of stream) {
           combined.throwIfAborted();
           if (event.type === "error") throw failure(event.code);
           if (event.type === "response.failed") throw failure(event.response.error?.code);
           if (event.type === "response.incomplete") throw failure("SIWC_SEARCH_INCOMPLETE");
+          if (event.type === "response.output_item.done")
+            outputItems.set(event.output_index, event.item);
           if (event.type === "response.completed") {
             if (event.response.status !== "completed") throw failure("SIWC_SEARCH_INCOMPLETE");
             completed = event.response;
@@ -186,7 +189,12 @@ export function createSiwcSearchProvider(
         // SDK stream cancellation may appear as a normal EOF, so verify the signal too.
         combined.throwIfAborted();
         if (!completed) throw failure("SIWC_SEARCH_INCOMPLETE");
-        return result(completed);
+        // SIWC can send finalized items separately while the terminal output is empty.
+        // Only use done items after successful response completion, never partial deltas.
+        const output = completed.output.length
+          ? completed.output
+          : [...outputItems].sort(([left], [right]) => left - right).map(([, item]) => item);
+        return result(output);
       } catch (error) {
         if (combined.aborted)
           throw failure(

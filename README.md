@@ -54,7 +54,7 @@ On startup, the plugin refreshes the signed-in account's model list automaticall
 
 Tokens use DSH's credential store; the default local store is not encrypted by an OS keychain.
 Manage usage and app access in [ChatGPT settings](https://chatgpt.com/settings/usage).
-Live account sign-in and inference have not yet been verified; automated tests use local fixtures.
+Automated OAuth and chat-inference tests use local fixtures. A fresh live sign-in has not been verified.
 
 ## Web search
 
@@ -71,7 +71,9 @@ The account/status endpoint returns only the active account label and model choi
 
 Search requires a supporting model and account/workspace policy. Unsupported requests, usage limits, interrupted streams, and missing sign-in remain errors; the plugin does not retry searches or switch billing routes automatically. SIWC requires streaming and does not support `max_output_tokens`; the provider has a 60-second deadline, and DSH's web-tool timeout may stop it earlier.
 
-Web search and the Settings transport are tested against DSH `0.2.1-rc.2` with local HTTP/SSE fixtures. Live account searches and deployment into a running Web profile have not been verified.
+Web search and the Settings transport are tested against DSH `0.2.1-rc.2` with local HTTP/SSE fixtures. The streaming search path has also been verified against the public SIWC API with a live `gpt-6.1-terra` account; this is not a full browser UI verification.
+
+Observed SIWC streams deliver finalized search results and answers in `response.output_item.done` while the terminal response's `output` can be empty. The provider assembles those finalized items by index and still requires `response.completed`; failed, incomplete, and interrupted streams remain errors.
 
 References: [SIWC requirements](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations), [web search](https://developers.openai.com/api/docs/guides/tools-web-search), and [errors and recovery](https://developers.openai.com/siwc/token-sharing-open-source/errors-and-recovery).
 
