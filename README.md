@@ -37,7 +37,7 @@ Build a package and install it into your Web profile:
 
 ```sh
 pnpm pack
-dsh plugin --profile web add ./dsh-siwc-0.1.2.tgz --ignore-scripts
+dsh plugin --profile web add ./dsh-siwc-0.1.3.tgz --ignore-scripts
 ```
 
 ## Use
