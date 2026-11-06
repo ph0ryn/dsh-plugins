@@ -4,6 +4,8 @@ Use your ChatGPT plan in [DeepSeek Harness](https://github.com/deepseek-ai/deeps
 
 | Supported DSH versions | Verification       |
 | ---------------------- | ------------------ |
+| 0.2.2-alpha.3          | Verified           |
+| 0.2.2-alpha.2          | Verified           |
 | 0.2.1-rc.2             | Verified           |
 | 0.2.1-rc.1             | Source review only |
 | 0.2.1-alpha.2–alpha.5  | Source review only |
@@ -54,28 +56,18 @@ On startup, the plugin refreshes the signed-in account's model list automaticall
 
 Tokens use DSH's credential store; the default local store is not encrypted by an OS keychain.
 Manage usage and app access in [ChatGPT settings](https://chatgpt.com/settings/usage).
-Automated OAuth and chat-inference tests use local fixtures. A fresh live sign-in has not been verified.
 
 ## Web search
 
 1. Sign in with `/chatgpt login`.
-2. Open **Settings → SIWC** and refresh the account status if you just signed in or switched accounts.
-3. Choose a **Search model** from the account's model list. The search model is separate from the conversation model; model visibility does not guarantee web-search eligibility.
-4. Select **Use SIWC for web search** to change DSH's search-provider setting explicitly.
+2. Open **Settings → SIWC**, refresh the account status, and choose a **Search model**.
+3. Select **Use SIWC for web search**.
 
-Search uses the public Responses API with your ChatGPT plan, not an OpenAI API key or ChatGPT's internal backend endpoints. It can serve `web_search` calls from other conversation models too. Webpage reading (`web_fetch`) is unchanged. **Manage ChatGPT usage** opens the plan/app usage settings.
+Search uses your ChatGPT plan through the public Responses API, including for conversations with other models. `web_fetch` is unchanged.
 
-Loading the plugin does not write the search-provider setting. If your deployment leaves that setting unset, DSH automatically selects its sole available provider; configuring a SIWC search model can therefore make SIWC eligible for automatic selection, or create ambiguity with another available provider. Set the provider explicitly when you want deterministic routing. **Restore deployment default** clears only the search-provider override; the inherited default may itself be automatic. Other search settings pages can also change this same host setting.
+The search model is separate from the conversation model and must support web search under your account's policy. After switching accounts, reselect it if unavailable. Errors do not trigger automatic retries or a switch to API-key billing.
 
-The account/status endpoint returns only the active account label and model choices to the authenticated host owner. Tokens stay in DSH's credential store. Switching accounts never silently chooses a different search model: if the saved choice is not in the new account's catalog, select it again in SIWC settings.
-
-Search requires a supporting model and account/workspace policy. Unsupported requests, usage limits, interrupted streams, and missing sign-in remain errors; the plugin does not retry searches or switch billing routes automatically. SIWC requires streaming and does not support `max_output_tokens`; the provider has a 60-second deadline, and DSH's web-tool timeout may stop it earlier.
-
-Web search and the Settings transport are tested against DSH `0.2.1-rc.2` with local HTTP/SSE fixtures. The streaming search path has also been verified against the public SIWC API with a live `gpt-6.1-terra` account; this is not a full browser UI verification.
-
-Observed SIWC streams deliver finalized search results and answers in `response.output_item.done` while the terminal response's `output` can be empty. The provider assembles those finalized items by index and still requires `response.completed`; failed, incomplete, and interrupted streams remain errors.
-
-References: [SIWC requirements](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations), [web search](https://developers.openai.com/api/docs/guides/tools-web-search), and [errors and recovery](https://developers.openai.com/siwc/token-sharing-open-source/errors-and-recovery).
+**Restore deployment default** clears the search-provider override; DSH may then select a provider automatically.
 
 ## Development
 
