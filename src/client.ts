@@ -11,12 +11,13 @@ import type {} from "@deepseek-ai/dsh-client-ui-settings/client";
 export const inject = ["slots", "configForms", "connection"];
 
 const styles = `
-.siwc-settings{display:grid;gap:28px;max-width:640px;color:var(--dsw-alias-label-primary);font-size:13px;line-height:1.5}
-.siwc-settings h2{font-size:18px;margin:0 0 8px}.siwc-settings h3,.siwc-settings p{margin:0}.siwc-settings h3,.siwc-settings label{font-size:13px;font-weight:600}
-.siwc-settings .siwc-group{display:grid;gap:10px}.siwc-settings .siwc-hint{color:var(--dsw-alias-label-tertiary);font-size:12px}
+.siwc-settings{display:grid;min-width:0;max-width:640px;color:var(--dsw-alias-label-primary);font-size:13px;line-height:1.5}
+.siwc-settings h2{font-size:18px;margin:0 0 4px}.siwc-settings h3,.siwc-settings p{margin:0}.siwc-settings h3,.siwc-settings label{font-size:13px;font-weight:600}
+.siwc-settings .siwc-group{display:grid;gap:10px;min-width:0;padding-block:20px}.siwc-settings .siwc-group+.siwc-group{border-block-start:1px solid var(--dsw-alias-border-l4)}
+.siwc-settings .siwc-hint{color:var(--dsw-alias-label-tertiary);font-size:12px}.siwc-settings .siwc-state{overflow-wrap:anywhere}.siwc-settings>.siwc-group:last-child{padding-block-end:0}
 .siwc-settings select,.siwc-settings button{font:inherit;color:inherit;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l4);border-radius:8px;padding:8px 12px;min-height:36px}
 .siwc-settings select{width:100%;min-width:0}.siwc-settings button{width:fit-content;max-width:100%;cursor:pointer}.siwc-settings button:disabled,.siwc-settings select:disabled{opacity:.5;cursor:default}
-.siwc-settings :is(button,select,a):focus-visible{outline:2px solid var(--dsw-alias-link);outline-offset:3px}.siwc-settings a{color:var(--dsw-alias-link);overflow-wrap:anywhere}.siwc-settings .siwc-actions{display:flex;gap:12px;flex-wrap:wrap}.siwc-settings [role=alert]{color:var(--dsw-alias-label-primary)}
+.siwc-settings :is(button,select,a):focus-visible{outline:2px solid var(--dsw-alias-link);outline-offset:3px}.siwc-settings a{color:var(--dsw-alias-link);overflow-wrap:anywhere}.siwc-settings .siwc-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.siwc-settings [role=alert]{color:var(--dsw-alias-label-primary)}
 `;
 
 function parseStatus(value: unknown): SiwcStatus {

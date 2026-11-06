@@ -71,62 +71,80 @@ export function SiwcSettingsPage({ form, web, loadStatus, subscribeReset }: Siwc
       "aria-labelledby": `${id}-title`,
       "aria-busy": loading || saving,
     },
-    h(
-      "div",
-      null,
-      h("h2", { id: `${id}-title` }, "SIWC"),
-      h(
-        "p",
-        { className: "siwc-hint" },
-        "Use your ChatGPT plan for web search. The search model is separate from your conversation model.",
-      ),
-    ),
+    h("h2", { id: `${id}-title` }, "SIWC"),
+    saving && h("p", { role: "status" }, "Saving…"),
+    error && h("p", { role: "alert" }, error),
     h(
       "div",
       { className: "siwc-group" },
       h("h3", null, "ChatGPT account"),
-      loading
-        ? h("p", { role: "status" }, "Loading account…")
-        : h(
-            "p",
-            null,
-            status ? (status.account?.label ?? "Not signed in") : "Account status unavailable",
-          ),
       !loading &&
         status &&
         !status.account &&
         h(
           "p",
           { className: "siwc-hint" },
-          "Run /chatgpt login in a chat, then refresh this page. Switch accounts with /chatgpt accounts.",
+          "Sign in with /chatgpt login, or switch with /chatgpt accounts. Then refresh.",
         ),
       h(
-        "button",
-        {
-          type: "button",
-          disabled: loading || saving,
-          onClick: () => setRefresh((value) => value + 1),
-        },
-        "Refresh account",
+        "p",
+        { className: "siwc-state", role: "status" },
+        loading
+          ? "Loading account…"
+          : status
+            ? (status.account?.label ?? "Not signed in")
+            : "Account status unavailable",
       ),
-      status &&
+      h(
+        "div",
+        { className: "siwc-actions" },
         h(
-          "a",
-          { href: status.usageUrl, target: "_blank", rel: "noopener noreferrer" },
-          "Manage ChatGPT usage",
+          "button",
+          {
+            type: "button",
+            disabled: loading || saving,
+            onClick: () => setRefresh((value) => value + 1),
+          },
+          "Refresh account",
         ),
+        status &&
+          h(
+            "a",
+            { href: status.usageUrl, target: "_blank", rel: "noopener noreferrer" },
+            "Manage ChatGPT usage",
+          ),
+      ),
     ),
     h(
       "div",
       { className: "siwc-group" },
       h("label", { htmlFor: `${id}-model` }, "Search model"),
       h(
+        "p",
+        { id: `${id}-model-hint`, className: "siwc-hint" },
+        "Separate from the conversation model.",
+      ),
+      model &&
+        !valid &&
+        status?.account &&
+        h(
+          "p",
+          { id: `${id}-model-status`, className: "siwc-state", role: "status" },
+          "The saved model is unavailable for this account. Select a search model to continue.",
+        ),
+      !config.writable &&
+        config.status === "ready" &&
+        h("p", { className: "siwc-state", role: "status" }, "Settings are read-only."),
+      h(
         "select",
         {
           id: `${id}-model`,
           value: valid ? model : "",
           disabled: !editable || !status?.models.length,
-          "aria-describedby": `${id}-model-hint`,
+          "aria-describedby":
+            model && !valid && status?.account
+              ? `${id}-model-hint ${id}-model-status`
+              : `${id}-model-hint`,
           onChange: (event: { currentTarget: { value: string } }) => {
             const value = event.currentTarget.value;
             return write(() =>
@@ -139,42 +157,25 @@ export function SiwcSettingsPage({ form, web, loadStatus, subscribeReset }: Siwc
           h("option", { key: choice.id, value: choice.id }, choice.name),
         ),
       ),
-      h(
-        "p",
-        { id: `${id}-model-hint`, className: "siwc-hint" },
-        model && !valid && status?.account
-          ? "The saved model is unavailable for this account. Select a search model to continue."
-          : "Choose an account-provided model that supports web search. Availability depends on your account and workspace policy.",
-      ),
     ),
     h(
       "div",
       { className: "siwc-group" },
       h("h3", null, "Web search provider"),
-      h(
-        "p",
-        null,
-        selected
-          ? "Using ChatGPT plan for web search"
-          : `Current setting: ${selection.value?.searchProvider ?? "Deployment default"}`,
-      ),
-      h(
-        "p",
-        { className: "siwc-hint" },
-        "Saving a model does not change the provider setting. This setting applies to web search across conversation models; webpage reading is unchanged.",
-      ),
       selection.status === "ready" &&
         selection.value?.searchProvider === undefined &&
         h(
           "p",
           { className: "siwc-hint" },
-          "No provider is pinned. DSH automatically selects a sole available provider, which may be SIWC. Select a provider explicitly to avoid ambiguity.",
+          "The default may select SIWC automatically. Choose a provider to pin it.",
         ),
       selection.status !== "ready" &&
+        h("p", { className: "siwc-state", role: "status" }, "Web search settings are unavailable."),
+      selection.status === "ready" &&
         h(
           "p",
-          { className: "siwc-hint" },
-          "Web search settings are not available in this deployment.",
+          { className: "siwc-state", role: "status" },
+          selected ? "ChatGPT plan" : (selection.value?.searchProvider ?? "Deployment default"),
         ),
       h(
         "div",
@@ -202,10 +203,5 @@ export function SiwcSettingsPage({ form, web, loadStatus, subscribeReset }: Siwc
           ),
       ),
     ),
-    !config.writable &&
-      config.status === "ready" &&
-      h("p", { className: "siwc-hint" }, "This deployment stores settings read-only."),
-    saving && h("p", { role: "status" }, "Saving…"),
-    error && h("p", { role: "alert" }, error),
   );
 }
