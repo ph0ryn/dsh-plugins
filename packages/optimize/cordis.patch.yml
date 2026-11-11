@@ -1,0 +1,3 @@
+- insert:
+    - id: optimize
+      name: dsh-optimize
