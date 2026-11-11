@@ -66,6 +66,9 @@
   "engines": {
     "node": ">=22.19.0"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "dsh": {
     "client": {
       "platform": "web",
