@@ -5,7 +5,7 @@ across the Web GUI and host behaviour, each switched on or off individually in S
 
 ## Status
 
-Early implementation: the Host half, the client half, the `Optimization` settings page,
+Early implementation: the Host half, the client half, the `Optimizations` settings page,
 and the feature registry/runtime are in place. The first feature, `Compact sidebar`,
 folds the sidebar navigation into its menu so workspaces get more room. Every feature stays
 OFF until enabled per profile; [docs/spec.md](docs/spec.md) owns the contract.

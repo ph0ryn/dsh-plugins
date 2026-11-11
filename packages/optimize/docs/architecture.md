@@ -247,7 +247,7 @@ ctx.effect(() =>
   ctx.configForms.whileServed(["optimize"], () =>
     ctx.slots.inject("settings.section", () =>
       ctx.slots.register(
-        { name: "settings.section", id: "optimize", order: 25, label: "Optimization" },
+        { name: "settings.section", id: "optimize", order: 25, label: "Optimizations" },
         SettingsPage,
       ),
     ),

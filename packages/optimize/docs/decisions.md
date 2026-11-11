@@ -74,7 +74,7 @@ DSH 本体の更新との切り分けもできなくなる。OFF 既定なら、
 
 ## D6 設定タブはトップレベルのセクションにする
 
-**決定**: `settings.section` を使い、`id: optimize`、`order: 25`、`label: "Optimization"` で登録する。
+**決定**: `settings.section` を使い、`id: optimize`、`order: 25`、`label: "Optimizations"` で登録する。
 
 **代替案**: Settings の Plugins セクション内のタブ（`settings.plugins.tab`）、General の行（`settings.general.item`）。
 
