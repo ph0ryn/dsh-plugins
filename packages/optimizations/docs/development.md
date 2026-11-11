@@ -6,10 +6,11 @@
 
 - リポジトリの前提に従う: Node.js 22.19 以上、pnpm 11.22.0。
 - 動作確認済みの DSH バージョンは、ホスト側 `src/index.ts` の `EXPECTED_DSH_VERSIONS` に列挙する。
-  現在はワークスペースの型基準 `0.2.1-rc.2` と、手元の DSH Web GUI が動く `0.2.2-alpha.3` を入れてある。
+  現在はワークスペースの型基準 `0.2.1-rc.2` と `0.2.2-alpha.3` を入れてある。
   手元の DSH (`dsh --version`) を変えたら一覧と `architecture.md` の型基準の記述を更新する。
-- `package.json` の `peerDependencies` は `@deepseek-ai/dsh-*` をリテラルで書く（`catalog:` 記法は使えない）。
-  値と `engines.dsh` を宣言しない理由は `architecture.md` の「バージョン要件」を参照する。
+- `package.json` の `peerDependencies` も `catalog:` で参照する。pnpm は pack / publish 時に
+  実 range へ置き換えるため、公開物の互換判定は従来どおり range で行われる。`engines.dsh` を
+  宣言しない理由は `architecture.md` の「バージョン要件」を参照する。
 - Host ランタイムが購読する `loader/volatile-update` の型宣言のため、`@deepseek-ai/cordis-plugin-loader` を
   devDependency に置き、型だけを import する。
 - テストは `node --import tsx --test` で実行する。ページを `.tsx` で書いているため、Node の型剥がしだけでは
@@ -62,10 +63,16 @@ GUI の Plugins パネルからでも同じ操作ができる（インストー�
 
 ### ソースから
 
+`peerDependencies` が `catalog:` のまま link される `file:` 指定は互換判定を通らないため、
+tarball を作ってから入れる。
+
 ```sh
-pnpm --filter @ph0ryn/dsh-optimizations build
-dsh plugin --profile web add file:/Users/ph0ryn/ghq/github.com/ph0ryn/dsh-plugins/packages/optimizations
+pnpm --filter @ph0ryn/dsh-optimizations pack --pack-destination ./artifacts
+dsh plugin --profile web add ./artifacts/ph0ryn-dsh-optimizations-0.1.0.tgz --ignore-scripts
 ```
+
+`pack` は作業ツリーの `package.json` を書き換える（`prepack` の `clean-pkg-json`）ので、
+確認後は `git restore packages/optimizations/package.json` で戻す。
 
 ### 旧 `dsh-optimize` からの移行
 

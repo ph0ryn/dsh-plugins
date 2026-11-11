@@ -2,15 +2,14 @@
 
 Use your ChatGPT plan in [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
 
-| Supported DSH versions | Verification       |
-| ---------------------- | ------------------ |
-| 0.2.2-alpha.3          | Verified           |
-| 0.2.2-alpha.2          | Verified           |
-| 0.2.1-rc.2             | Verified           |
-| 0.2.1-rc.1             | Source review only |
-| 0.2.1-alpha.2–alpha.5  | Source review only |
+| Supported DSH versions | Verification |
+| ---------------------- | ------------ |
+| 0.2.2-alpha.3          | Verified     |
+| 0.2.2-alpha.2          | Verified     |
+| 0.2.1-rc.2             | Verified     |
 
-Use a browser on the same machine as DSH. Unlisted versions are unverified.
+Use a browser on the same machine as DSH. The install check requires DSH 0.2.1-rc.2 or later;
+unlisted versions are unverified.
 
 ## Install
 

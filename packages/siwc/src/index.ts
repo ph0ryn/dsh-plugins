@@ -37,16 +37,7 @@ export const Config = z.object({
   searchModel: z.string().default("").volatile(),
 });
 
-const EXPECTED_DSH_VERSIONS = [
-  "0.2.1-alpha.2",
-  "0.2.1-alpha.3",
-  "0.2.1-alpha.4",
-  "0.2.1-alpha.5",
-  "0.2.1-rc.1",
-  "0.2.1-rc.2",
-  "0.2.2-alpha.2",
-  "0.2.2-alpha.3",
-];
+const EXPECTED_DSH_VERSIONS = ["0.2.1-rc.2", "0.2.2-alpha.2", "0.2.2-alpha.3"];
 
 const label = (account: Account) =>
   `${account.email ?? "Saved registration"} (${account.id.slice(0, 8)})`;

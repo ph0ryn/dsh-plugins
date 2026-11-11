@@ -43,7 +43,8 @@ Cordis のサービス注入は `src/client.ts` の `export const inject = [...]
 
 ### バージョン要件
 
-`peerDependencies` に `@deepseek-ai/dsh-*` をリテラル（`^0.2.1-rc.2`）で並べ、`engines.dsh` は宣言しない。
+`peerDependencies` も `catalog:` で参照する（既定 catalog の型基準は `^0.2.1-rc.2`）。`engines.dsh` は宣言しない。
+pnpm は pack / publish 時に `catalog:` を実際の range に置き換えるため、公開物の互換判定は従来どおり range で行われる。
 DSH の互換判定は `engines.dsh` があればそれだけで決まり、無ければ `@deepseek-ai/dsh*` の peer を
 prerelease 込みで判定する。`engines.dsh` の宣言は、検証していない将来の版を利用者の環境から締め出す。
 

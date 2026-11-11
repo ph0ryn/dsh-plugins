@@ -1,9 +1,11 @@
 packages:
   - packages/*
 
-# Versions installed in workspace projects. Packages reference these with "catalog:".
-# peerDependencies stay literal: the plugin's compatibility check reads
-# peerDependencies from package.json, which must not contain catalog protocol.
+# Versions installed in workspace projects. Packages reference these with "catalog:",
+# including peerDependencies. pnpm replaces "catalog:" with the resolved range when
+# packing and publishing, so installed manifests keep plain ranges for the DSH
+# compatibility check. A linked `file:` directory keeps "catalog:", so install a
+# packed tarball when testing from source.
 catalog:
   "@deepseek-ai/cordis": ^4.0.5
   "@deepseek-ai/cordis-plugin-loader": ^1.0.6
