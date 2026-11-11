@@ -4,10 +4,16 @@ Plugins for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
 
 ## Plugins
 
-| Plugin                            | Description                                                                                |
-| --------------------------------- | ------------------------------------------------------------------------------------------ |
-| [dsh-siwc](packages/siwc)         | Use your ChatGPT plan in DeepSeek Harness.                                                 |
-| [dsh-optimize](packages/optimize) | Small improvements across the Web GUI and host behaviour, switched on or off individually. |
+| Plugin                                              | Description                                                                                |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| [dsh-siwc](packages/siwc)                           | Use your ChatGPT plan in DeepSeek Harness.                                                 |
+| [@ph0ryn/dsh-optimizations](packages/optimizations) | Small improvements across the Web GUI and host behaviour, switched on or off individually. |
+
+Install one into your Web profile:
+
+```sh
+dsh plugin --profile web add @ph0ryn/dsh-optimizations --ignore-scripts
+```
 
 ## Development
 
@@ -36,4 +42,4 @@ Each plugin lives in `packages/<name>` with its own `package.json`, `vite.config
 
 ## Release
 
-Push a tag named `<plugin>-v<version>`, such as `siwc-v0.1.4`. The release workflow publishes only the matching package to npm and creates a GitHub Release.
+Push a tag named `<plugin>-v<version>` using the package directory name, such as `siwc-v0.1.4` or `optimizations-v0.1.0`. The release workflow publishes only the matching package to npm and creates a GitHub Release.

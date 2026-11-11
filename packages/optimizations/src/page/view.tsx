@@ -22,7 +22,7 @@ export interface PageControls {
 }
 
 export interface SettingsPageViewProps {
-  /** Shared form for the `optimize` Host entry; the Host owns persistence and conflicts. */
+  /** Shared form for the `optimizations` Host entry; the Host owns persistence and conflicts. */
   readonly form: ConfigForm<Record<string, unknown>>;
   readonly features: readonly FeatureMeta[];
   readonly copy: Readonly<Record<string, FeatureCopy>>;
@@ -85,21 +85,21 @@ export function SettingsPageView({ form, features, copy, controls }: SettingsPag
   };
 
   return (
-    <section className="optimize-settings">
-      <style data-plugin="dsh-optimize">{styles}</style>
-      <header className="optimize-header">
+    <section className="optimizations-settings">
+      <style data-plugin="@ph0ryn/dsh-optimizations">{styles}</style>
+      <header className="optimizations-header">
         <h2>{PAGE.title}</h2>
         <p>{PAGE.description}</p>
       </header>
-      <div className="optimize-toolbar">
+      <div className="optimizations-toolbar">
         <Input
-          className="optimize-search"
+          className="optimizations-search"
           value={query}
           onChange={(event) => setQuery(event.currentTarget.value)}
           placeholder={PAGE.searchPlaceholder}
           aria-label={PAGE.searchPlaceholder}
         />
-        <div className="optimize-actions">
+        <div className="optimizations-actions">
           <Button
             size="sm"
             disabled={disabled || features.length === 0}
@@ -120,24 +120,24 @@ export function SettingsPageView({ form, features, copy, controls }: SettingsPag
         </div>
       </div>
       {writable ? null : (
-        <p className="optimize-note" role="status">
+        <p className="optimizations-note" role="status">
           {PAGE.readOnly}
         </p>
       )}
       {snapshot.status === "loading" ? (
-        <p className="optimize-note" role="status">
+        <p className="optimizations-note" role="status">
           {PAGE.loading}
         </p>
       ) : null}
       {error ? (
-        <p className="optimize-error" role="alert">
+        <p className="optimizations-error" role="alert">
           {error}
         </p>
       ) : null}
       {visible.length === 0 ? (
-        <p className="optimize-empty">{PAGE.empty}</p>
+        <p className="optimizations-empty">{PAGE.empty}</p>
       ) : (
-        <ul className="optimize-features">
+        <ul className="optimizations-features">
           {visible.map((feature) => (
             <FeatureRow
               key={feature.id}

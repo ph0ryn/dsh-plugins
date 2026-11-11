@@ -1,4 +1,4 @@
-# decisions — dsh-optimize
+# decisions — @ph0ryn/dsh-optimizations
 
 > この文書が答える問い: **なぜその設計・技術を選んだか**。現在の設計判断と、採用しなかった代替案、そのトレードオフを記録する。構造の説明は `architecture.md`、要求は `spec.md` を参照する。
 
@@ -26,7 +26,7 @@ volatile フィールドの実行中反映を既に提供する。独自実装�
 利用者から見て「他の設定と同じ場所に保存されない」不整合を生む。専用ルートは認証・所有権・
 エラー処理の面で余計な公開境界を増やす。
 
-**影響**: 設定は `optimize` 名前空間として profile の設定ファイルに現れる。
+**影響**: 設定は `optimizations` 名前空間として profile の設定ファイルに現れる。
 フィールドは必ず `.volatile()` を付け、ネストした辞書は使わない（単一フィールド書き込みが
 名前空間直下のスカラーを前提にするため）。
 
@@ -74,7 +74,7 @@ DSH 本体の更新との切り分けもできなくなる。OFF 既定なら、
 
 ## D6 設定タブはトップレベルのセクションにする
 
-**決定**: `settings.section` を使い、`id: optimize`、`order: 25`、`label: "Optimizations"` で登録する。
+**決定**: `settings.section` を使い、`id: optimizations`、`order: 25`、`label: "Optimizations"` で登録する。
 
 **代替案**: Settings の Plugins セクション内のタブ（`settings.plugins.tab`）、General の行（`settings.general.item`）。
 
@@ -127,6 +127,8 @@ primitives はシェルの共有モジュール表（`PLATFORM_MODULES`）に含
 
 ## D10 当面は `file:` インストールで運用する
 
+> **状態**: D17 で置き換え。以下は公開前の判断の記録。
+
 **決定**: npm 公開とタグリリースは行わず、ローカルパスから profile にインストールする。
 
 **代替案**: 最初から npm 公開、Git リポジトリ指定。
@@ -146,8 +148,8 @@ primitives はシェルの共有モジュール表（`PLATFORM_MODULES`）に含
 **理由**: DSH の互換判定は `engines.dsh` があればそれだけで決まり、無ければ `@deepseek-ai/dsh*` の
 peer すべてを prerelease 込みで判定する。`^0.2.1-rc.2` は検証済みの実行バージョン（0.2.2-alpha.3）を
 含み、型検査に使う版を下限にできる。`engines.dsh` で固定すると、検証していない将来の版を
-利用者の環境から締め出すことになる。本プラグインはプライベートな `file:` 配布なので、
-互換性の最終判断は利用者の環境で行うのが現実的。
+利用者の環境から締め出すことになる。本プラグインは `0.x` で公開し、互換性の最終判断は
+利用者の環境で行うのが現実的。
 
 **影響**: 未検証の DSH でもインストール・起動できる。壊れた場合の切り分けは `EXPECTED_DSH_VERSIONS` と
 起動ログで行う。`pnpm-workspace.yaml` のカタログは `catalog:` 記法のまま使えるが、peer は catalog 不可。
@@ -189,7 +191,7 @@ commit 済みなので、通知を受けてから `config.<id>.get()` を読め�
 **代替案**: 機能が1件も無い間は設定タブを出さない、スキーマのルートを volatile にする、機能0件のときだけダミー機能を登録する。
 
 **理由**: `settings.describe()` は volatile フィールドを1つも持たない名前空間を配信対象から外すため、
-機能0件のフラットなスキーマでは `whileServed(["optimize"])` が発火せず、設定タブが登録されない。
+機能0件のフラットなスキーマでは `whileServed(["optimizations"])` が発火せず、設定タブが登録されない。
 機能が追加されるまでの暫定ではなく、`schemaVersion` は将来キーを移行するときの設定ドキュメント互換
 バージョンとしても使える。ルートを volatile にすると `config` が `Volatile<...>` になり、
 `config.<featureId>.get()` というフィールド単位の読み取りができなくなる。ダミー機能は「機能」の一覧に
@@ -230,3 +232,21 @@ More メニューへの行追加は list slot の正規の追加で、メニュ�
 **影響**: CSS は `[data-slot="sidebar"]` と要素の並び（ロゴ行 / New Session / nav / More アンカー）に依存するため、
 DSH のサイドバー DOM 変更で壊れ得る。追従手順は `development.md`、判定は `verification.md` の手動確認に置く。
 280px 幅ではブランド名（wordmark）を隠して1行に収める。More ボタンのアイコンはシェル既定のまま差し替えない。
+
+## D17 `@ph0ryn/dsh-optimizations` として npm 公開し、識別子を `optimizations` に統一する
+
+**決定**: パッケージ名を `@ph0ryn/dsh-optimizations` とし、ディレクトリ・モジュール id・Host エントリ id・
+設定名前空間・セクション id・fiber 名・CSS 接頭辞を `optimizations` に揃える。`private` を外し、
+`prepack` でビルドと `clean-pkg-json --keep dsh` を実行して公開する。
+
+**代替案**: 未公開の `dsh-optimize` 名のまま npm 公開する、scope なしの `dsh-optimizations` で公開する、
+パッケージ名だけ変えて実行時 id は `optimize` のまま残す。
+
+**理由**: npm の scope は作者の配布物をまとめる単位で、既存の `dsh-siwc` と同じ `@ph0ryn` scope に置けば
+名前の衝突を避けられる。初回公開前なら設定名前空間を変えても移行コストは開発環境に閉じるため、
+パッケージ名と設定キー・ログ・CSS の識別子を一致させておくほうが、公開後に名前が食い違うより安い。
+`optimize` のまま公開すると、設定ファイルに現れる名前空間とパッケージ名が恒久的にずれる。
+
+**影響**: 利用者の設定は `optimizations` 名前空間に保存される。未公開の `dsh-optimize` を `file:` で
+入れていた profile はパッケージと設定キーの移行が必要（手順は `development.md`）。
+リリースタグはディレクトリ名を使う `<plugin>-v<version>` のままで、`optimizations-v0.1.0` のように push する。

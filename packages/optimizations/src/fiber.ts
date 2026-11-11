@@ -11,7 +11,7 @@ export function implementationFor(
 ): Plugin.Object {
   const implementation = implementations[id];
   if (!implementation)
-    throw new Error(`optimize: no implementation registered for feature "${id}"`);
+    throw new Error(`optimizations: no implementation registered for feature "${id}"`);
   return implementation;
 }
 

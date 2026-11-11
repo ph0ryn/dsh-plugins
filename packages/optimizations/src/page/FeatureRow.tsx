@@ -33,16 +33,16 @@ export function FeatureRow({
   onChange,
 }: FeatureRowProps) {
   return (
-    <li className="optimize-feature" data-optimize-feature={feature.id}>
-      <div className="optimize-feature-text">
-        <div className="optimize-feature-heading">
-          <span className="optimize-feature-name">{copy.name}</span>
-          <span className="optimize-feature-side">{sideLabel(feature)}</span>
+    <li className="optimizations-feature" data-optimizations-feature={feature.id}>
+      <div className="optimizations-feature-text">
+        <div className="optimizations-feature-heading">
+          <span className="optimizations-feature-name">{copy.name}</span>
+          <span className="optimizations-feature-side">{sideLabel(feature)}</span>
           {feature.reload === "restart" ? (
-            <span className="optimize-feature-restart">{PAGE.restartRequired}</span>
+            <span className="optimizations-feature-restart">{PAGE.restartRequired}</span>
           ) : null}
         </div>
-        <p className="optimize-feature-description">{copy.description}</p>
+        <p className="optimizations-feature-description">{copy.description}</p>
       </div>
       <Switch
         checked={checked}

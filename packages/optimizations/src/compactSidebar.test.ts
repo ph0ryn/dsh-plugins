@@ -217,7 +217,7 @@ test("the plugin registers its menu rows and installs cleanup-owning styles", ()
     assert.equal(head.appended.length, 1, "the feature injects one owned style element");
     assert.equal(registered.length, 1);
     assert.equal(registered[0].options.name, "sidebar.panellist.actions");
-    assert.equal(registered[0].options.id, "optimize-sidebar-nav");
+    assert.equal(registered[0].options.id, "optimizations-sidebar-nav");
     assert.equal(registered[0].options.order, -100);
     assert.equal(registered[0].component, SidebarNavRows);
     cleanups.forEach((cleanup) => cleanup());

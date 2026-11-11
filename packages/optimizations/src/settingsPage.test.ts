@@ -106,10 +106,10 @@ test("feature rows keep registry order and show side and restart facts", async (
   const renderer = await render(view(fake.form));
   try {
     const items = renderer.root.findAll(
-      (node) => node.props["data-optimize-feature"] !== undefined,
+      (node) => node.props["data-optimizations-feature"] !== undefined,
     );
     assert.deepEqual(
-      items.map((node) => node.props["data-optimize-feature"]),
+      items.map((node) => node.props["data-optimizations-feature"]),
       ["alpha", "beta", "gamma"],
     );
     const switches = renderer.root.findAllByType(StubSwitch);
@@ -138,17 +138,19 @@ test("search narrows rows by name and description", async () => {
     await act(async () => {
       input.props.onChange({ currentTarget: { value: "session logs" } });
     });
-    let items = renderer.root.findAll((node) => node.props["data-optimize-feature"] !== undefined);
+    let items = renderer.root.findAll(
+      (node) => node.props["data-optimizations-feature"] !== undefined,
+    );
     assert.deepEqual(
-      items.map((node) => node.props["data-optimize-feature"]),
+      items.map((node) => node.props["data-optimizations-feature"]),
       ["beta"],
     );
     await act(async () => {
       input.props.onChange({ currentTarget: { value: "gamma" } });
     });
-    items = renderer.root.findAll((node) => node.props["data-optimize-feature"] !== undefined);
+    items = renderer.root.findAll((node) => node.props["data-optimizations-feature"] !== undefined);
     assert.deepEqual(
-      items.map((node) => node.props["data-optimize-feature"]),
+      items.map((node) => node.props["data-optimizations-feature"]),
       ["gamma"],
     );
   } finally {

@@ -1,33 +1,33 @@
-# verification — dsh-optimize
+# verification — @ph0ryn/dsh-optimizations
 
 > この文書が答える問い: **どうやって正しさを確かめるか**。検証する不変条件、自動テスト、手動確認の手順と判定基準を書く。要求は `spec.md` を参照し、ここで再定義しない。
 
 ## 検証する不変条件
 
-| #   | 不変条件                                                                                                                                     | 対応する契約 |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| I1  | `FEATURES` の全 id に、設定スキーマのフィールド・各面の実装・英語の表示名と説明が存在する                                                    | S1, S2       |
-| I2  | 機能の全フィールドが volatile で既定値が false。`schemaVersion` だけが非機能フィールドとして volatile（既定値 1）                            | S2, S4       |
-| I3  | 設定タブは `id: optimize` / `order: 25` / `label: "Optimizations"` で1回だけ登録される（`src/section.ts`）                                   | S1           |
-| I4  | 差分適用は、ON の機能だけを mount し、OFF になった機能だけを dispose する（Host と Client の両面で）                                         | S2, S3       |
-| I5  | 全機能 OFF のとき、機能由来のスタイル・スロット寄与・購読・Host 側の登録がゼロである。設定ページのスタイルはページを開いている間だけ存在する | S2, S3       |
-| I6  | 設定の書き込みは `configForms` 経由で、トグル1操作が 1 write に収まる（一括操作は `mutate` 1回）                                             | S3, S4       |
-| I7  | 1機能の apply 失敗が他機能と設定ページに影響しない。両面の機能では片側の失敗が他方を止めない                                                 | S6           |
-| I8  | ビルド成果物が Module Loader 契約（`window.__ModuleLoader__.load`、id `dsh-optimize`）を満たし、JSX が残っていない（`src/dist.check.ts`）    | S1           |
-| I9  | モジュール id / Host エントリ id / セクション id の3つが設計どおりで、互いに取り違えられていない                                             | S1, S4       |
-| I10 | 設定の書き込みが profile の設定ドキュメントに反映され、再起動後に復元される                                                                  | S4           |
-| I11 | Host 側の機能は `loader/volatile-update` の後にだけ mount/dispose され、起動時にも現在値で1回同期される                                      | S2, S3       |
-| I12 | 再起動反映の機能は起動時にだけ評価され、トグルでは再マウントされず、行に「再起動が必要」と表示される                                         | S2, S3       |
+| #   | 不変条件                                                                                                                                               | 対応する契約 |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------ |
+| I1  | `FEATURES` の全 id に、設定スキーマのフィールド・各面の実装・英語の表示名と説明が存在する                                                              | S1, S2       |
+| I2  | 機能の全フィールドが volatile で既定値が false。`schemaVersion` だけが非機能フィールドとして volatile（既定値 1）                                      | S2, S4       |
+| I3  | 設定タブは `id: optimizations` / `order: 25` / `label: "Optimizations"` で1回だけ登録される（`src/section.ts`）                                        | S1           |
+| I4  | 差分適用は、ON の機能だけを mount し、OFF になった機能だけを dispose する（Host と Client の両面で）                                                   | S2, S3       |
+| I5  | 全機能 OFF のとき、機能由来のスタイル・スロット寄与・購読・Host 側の登録がゼロである。設定ページのスタイルはページを開いている間だけ存在する           | S2, S3       |
+| I6  | 設定の書き込みは `configForms` 経由で、トグル1操作が 1 write に収まる（一括操作は `mutate` 1回）                                                       | S3, S4       |
+| I7  | 1機能の apply 失敗が他機能と設定ページに影響しない。両面の機能では片側の失敗が他方を止めない                                                           | S6           |
+| I8  | ビルド成果物が Module Loader 契約（`window.__ModuleLoader__.load`、id `@ph0ryn/dsh-optimizations`）を満たし、JSX が残っていない（`src/dist.check.ts`） | S1           |
+| I9  | モジュール id / Host エントリ id / セクション id の3つが設計どおりで、互いに取り違えられていない                                                       | S1, S4       |
+| I10 | 設定の書き込みが profile の設定ドキュメントに反映され、再起動後に復元される                                                                            | S4           |
+| I11 | Host 側の機能は `loader/volatile-update` の後にだけ mount/dispose され、起動時にも現在値で1回同期される                                                | S2, S3       |
+| I12 | 再起動反映の機能は起動時にだけ評価され、トグルでは再マウントされず、行に「再起動が必要」と表示される                                                   | S2, S3       |
 
 ## 自動テスト
 
 テストはパッケージ内で実行する。ページの `.tsx` を Node の型剥がしだけでは読み込めないため、
-`pnpm --filter dsh-optimize test` はテスト実行時のみ `tsx` ローダーを使う。
+`pnpm --filter @ph0ryn/dsh-optimizations test` はテスト実行時のみ `tsx` ローダーを使う。
 
 ```sh
-pnpm --filter dsh-optimize typecheck
-pnpm --filter dsh-optimize test
-pnpm --filter dsh-optimize build
+pnpm --filter @ph0ryn/dsh-optimizations typecheck
+pnpm --filter @ph0ryn/dsh-optimizations test
+pnpm --filter @ph0ryn/dsh-optimizations build
 ```
 
 ### レジストリ・スキーマ（`src/features.test.ts`）
@@ -69,18 +69,18 @@ pnpm --filter dsh-optimize build
 
 ### ビルド成果物（`src/dist.check.ts`、`build` の一部）
 
-- I8: `dist/client/client.cjs` が `window.__ModuleLoader__.load({id:"dsh-optimize",factory:...` で始まり、
+- I8: `dist/client/client.cjs` が `window.__ModuleLoader__.load({id:"@ph0ryn/dsh-optimizations",factory:...` で始まり、
   評価できること（生の JSX が残っていないことの実証）と `react/jsx-runtime` を require することを検証する。
   `dist/server/index.js` が `name` / `Config` / `apply` を export することを import で検証する。
-- I9: モジュール id `dsh-optimize`、`cordis.patch.yml` の `optimize`、`SECTION.id` の `optimize` を突き合わせる。
+- I9: モジュール id `@ph0ryn/dsh-optimizations`、`cordis.patch.yml` の `optimizations`、`SECTION.id` の `optimizations` を突き合わせる。
 
 ### 設定の永続化（`src/settingsPersistence.test.ts`、実 Loader / Settings）
 
-- I2/I10: `settings.describe()` に `optimize` が現れ、`applies: "live"`、`value` が `{ schemaVersion: 1 }`、
+- I2/I10: `settings.describe()` に `optimizations` が現れ、`applies: "live"`、`value` が `{ schemaVersion: 1 }`、
   配信フォームのスキーマが `schemaVersion` だけであることを確認する。`mutate` で `schemaVersion` を書くと
   revision が増え、profile の `cordis.patch.yml` に現れ、再起動後も復元される。
 - I6: 古い revision の書き込みが `SettingsConflictError` で拒否され、ファイルが変わらない。
-- I9: Host エントリを無効化すると `describe()` から `optimize` が消える。
+- I9: Host エントリを無効化すると `describe()` から `optimizations` が消える。
 
 ## 手動確認
 
@@ -100,7 +100,7 @@ pnpm --filter dsh-optimize build
 2. 画面が保存操作なしで変わることを確認する。
 3. profile の設定ファイルを開く。
 
-判定: `optimize` の設定に該当キーが `true` で書かれている。再読み込み後も ON のまま。
+判定: `optimizations` の設定に該当キーが `true` で書かれている。再読み込み後も ON のまま。
 OFF に戻すと見た目が完全に元へ戻り、設定ファイルからキーが消える（または `false`）。
 
 ### 3. 無効時の無影響
@@ -108,7 +108,7 @@ OFF に戻すと見た目が完全に元へ戻り、設定ファイルからキ�
 1. 全機能を OFF にする。
 2. DevTools で DOM を確認する。
 
-判定: 設定を閉じた状態で、本プラグインの `<style data-plugin="dsh-optimize">` が存在しない。
+判定: 設定を閉じた状態で、本プラグインの `<style data-plugin="@ph0ryn/dsh-optimizations">` が存在しない。
 スロットに本プラグイン由来の要素が無い。見た目と挙動が素の DSH と一致する。
 （設定ページを開いている間だけ、ページ自身がスタイル要素を描画する。）
 

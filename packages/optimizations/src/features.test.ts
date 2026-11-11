@@ -71,7 +71,7 @@ test("generated schema keeps one volatile OFF boolean per feature plus the servi
 test("settings section identity is fixed", () => {
   assert.deepEqual(SECTION, {
     name: "settings.section",
-    id: "optimize",
+    id: "optimizations",
     order: 25,
     label: "Optimizations",
   });

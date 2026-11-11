@@ -1,7 +1,6 @@
 {
-  "name": "dsh-optimize",
+  "name": "@ph0ryn/dsh-optimizations",
   "version": "0.1.0",
-  "private": true,
   "description": "Small individually switchable improvements for DeepSeek Harness across the Web GUI and host behaviour",
   "keywords": [
     "dsh",
@@ -34,6 +33,7 @@
   ],
   "scripts": {
     "build": "vp pack && node src/dist.check.ts",
+    "prepack": "pnpm run build && clean-pkg-json --keep dsh",
     "test": "node --import tsx --test src/*.test.ts",
     "typecheck": "tsc -p tsconfig.json"
   },

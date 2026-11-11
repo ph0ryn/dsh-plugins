@@ -1,4 +1,4 @@
-# development — dsh-optimize
+# development — @ph0ryn/dsh-optimizations
 
 > この文書が答える問い: **開発・ビルド・ローカル導入・追随をどう行うか**。手順を書き、設計の理由は `decisions.md`、要求は `spec.md` を参照する。
 
@@ -21,9 +21,9 @@
 リポジトリのルートで実行する。
 
 ```sh
-pnpm --filter dsh-optimize typecheck
-pnpm --filter dsh-optimize test
-pnpm --filter dsh-optimize build
+pnpm --filter @ph0ryn/dsh-optimizations typecheck
+pnpm --filter @ph0ryn/dsh-optimizations test
+pnpm --filter @ph0ryn/dsh-optimizations build
 ```
 
 `build` は `vp pack` の後に `src/dist.check.ts` を実行し、Module Loader 契約と識別子の
@@ -41,29 +41,48 @@ pnpm build
 
 整形は `pnpm format`。Markdown も対象に含まれる。
 
-## ローカルインストール
+## インストール
 
-npm 公開前は `file:` 指定で開発用 profile に入れる。
+公開パッケージを profile に入れる。
 
 ```sh
-pnpm --filter dsh-optimize build
-dsh plugin --profile web add file:/Users/ph0ryn/ghq/github.com/ph0ryn/dsh-plugins/packages/optimize
+dsh plugin --profile web add @ph0ryn/dsh-optimizations --ignore-scripts
 ```
 
 `dsh plugin` は profile ディレクトリで pnpm を実行する薄いラッパである。インストール後、
 パッケージが `dsh.bundle.patch` を宣言していれば、profile の `package.json` の
 `dsh.profile.bundles` へ自動で追加され、パッチが適用される。手作業での追記は不要。
 
-- **確認**: profile の `package.json` の `dependencies` と `dsh.profile.bundles` に `dsh-optimize` が入る。
-- **更新**: ビルド後に同じ `dsh plugin add file:...` を再実行する。
-- **削除**: `dsh plugin --profile web remove dsh-optimize`。バンドル一覧からも外れる。
-- **設定の削除**: profile の `cordis.patch.yml` にある `optimize` の `config` を消す。
+- **確認**: profile の `package.json` の `dependencies` と `dsh.profile.bundles` に `@ph0ryn/dsh-optimizations` が入る。
+- **更新**: 新しいバージョンを公開したら同じ `dsh plugin add` を再実行する。
+- **削除**: `dsh plugin --profile web remove @ph0ryn/dsh-optimizations`。バンドル一覧からも外れる。
+- **設定の削除**: profile の `cordis.patch.yml` にある `optimizations` の `config` を消す。
 
 GUI の Plugins パネルからでも同じ操作ができる（インストール・有効/無効・更新）。
 
+### ソースから
+
+```sh
+pnpm --filter @ph0ryn/dsh-optimizations build
+dsh plugin --profile web add file:/Users/ph0ryn/ghq/github.com/ph0ryn/dsh-plugins/packages/optimizations
+```
+
+### 旧 `dsh-optimize` からの移行
+
+未公開だった `dsh-optimize` を `file:` で入れている profile は、パッケージ名と設定名前空間が
+変わっているため入れ替える。
+
+```sh
+dsh plugin --profile web remove dsh-optimize
+dsh plugin --profile web add @ph0ryn/dsh-optimizations --ignore-scripts
+```
+
+設定を引き継ぐには、profile の `cordis.patch.yml` にある旧エントリの `id: optimize` を
+`id: optimizations` に、`name: dsh-optimize` を `name: "@ph0ryn/dsh-optimizations"` に書き換える。
+
 ### 開発ループ
 
-1. クライアントを変更したら `pnpm --filter dsh-optimize build` を実行する。
+1. クライアントを変更したら `pnpm --filter @ph0ryn/dsh-optimizations build` を実行する。
 2. ホストは配信中のクライアント成果物を監視しており、成果物が変わると HMR で差し替える。
    反映されない場合はページを再読み込みする。
 3. HMR ではプラグイン内の React state が失われる。トグル操作の途中状態は保存されない前提で確認する。
@@ -73,9 +92,9 @@ DSH 本体のチェックアウトで使う `pnpm run dev:web` は、本プラ�
 ## 機能の追加手順
 
 1. 実装を書く。作用する面ごとに cordis プラグインを1つ用意する。
-   - Client 面: `src/features/<id>.tsx`。スロットへ追加する場合、`id` とキーには `optimize-` 接頭辞を付ける。
+   - Client 面: `src/features/<id>.tsx`。スロットへ追加する場合、`id` とキーには `optimizations-` 接頭辞を付ける。
    - Host 面: `src/features/<id>.host.ts`。
-   - `name` は `optimize/<id>`。副作用は `ctx.effect` の中で登録し、戻り値の disposer で必ず解除する。
+   - `name` は `optimizations/<id>`。副作用は `ctx.effect` の中で登録し、戻り値の disposer で必ず解除する。
    - 必要なサービスは `inject` に列挙する。無い構成では PENDING で留まる前提で書く。
 2. 実装マップに1行追加する。面ごとに別のマップである。
    - Client: `src/features/client.ts`
@@ -88,16 +107,6 @@ DSH 本体のチェックアウトで使う `pnpm run dev:web` は、本プラ�
    ページの行・検索・書き込みは `src/settingsPage.test.ts` の合成 registry パターンに合わせる。
 7. シェルの DOM を対象にする Client 機能は、`src/compactSidebar.test.ts` のようにスタイル文字列・
    スロット登録・後始末をテストし、見た目は `verification.md` の手動確認で補う。
-
-### 識別子の注意
-
-3つの識別子は別物である。取り違えると「タブが出ない」「設定が読めない」の原因になる。
-
-| 識別子                          | 値                                                          |
-| ------------------------------- | ----------------------------------------------------------- |
-| パッケージ名 = モジュール id    | `dsh-optimize`（`window.__ModuleLoader__.load` の `id`）    |
-| Host エントリ id = 設定名前空間 | `optimize`（`cordis.patch.yml`、`ctx.configForms.get()`）   |
-| セクション id                   | `optimize`（`settings.section` と `settings.section.icon`） |
 
 ## DSH 更新時の追従
 
@@ -119,11 +128,31 @@ DSH を更新したら、次の順で確認する。
    - More アンカーが `nav` の最後の子で、`aria-haspopup="menu"` を持つボタンであること
 5. 手動確認（`verification.md`）を一通り実行する。
 
+## 公開
+
+リリースは GitHub Actions の Release ワークフローが行う。ディレクトリ名を使ったタグ
+`<plugin>-v<version>`（例 `optimizations-v0.1.0`）を push すると、ワークフローが
+`packages/optimizations/package.json` を読み、`pnpm --filter @ph0ryn/dsh-optimizations pack` で
+tarball を作成し、npm と GitHub Release に公開する。`package.json` の `version` とタグの version は
+一致させる。
+
+公開物をローカルで確認する場合:
+
+```sh
+pnpm --filter @ph0ryn/dsh-optimizations pack --pack-destination ./artifacts
+tar -tzf artifacts/ph0ryn-dsh-optimizations-*.tgz
+```
+
+`prepack` が `dist` をビルドして `clean-pkg-json --keep dsh` を実行するため、tarball 内の
+`package.json` からは `scripts` と `devDependencies` が除かれる（`dsh`、`peerDependencies`、`files` は残る）。
+`pack` は作業ツリーの `package.json` も書き換えるので、確認後は
+`git restore packages/optimizations/package.json` で戻す。
+
 ## デバッグ
 
-- 本プラグインのスタイルは `style[data-plugin="dsh-optimize"]` で見つかる。
-- 各機能の適用状況は、fiber 名 `optimize/<id>` でログを追う。
-- 設定の実体は profile の `cordis.patch.yml` の `optimize` セクション。書き込みに失敗する場合は
+- 本プラグインのスタイルは `style[data-plugin="@ph0ryn/dsh-optimizations"]` で見つかる。
+- 各機能の適用状況は、fiber 名 `optimizations/<id>` でログを追う。
+- 設定の実体は profile の `cordis.patch.yml` の `optimizations` セクション。書き込みに失敗する場合は
   まずこのファイルの権限と `writable` を確認する。
 - **タブが出ない**: `cordis.patch.yml` の `id` と `ctx.configForms.get()` の引数が一致しているか、
   `Config` の全フィールドに `.volatile()` が付いているかを確認する。volatile が無いと名前空間が

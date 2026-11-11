@@ -1,4 +1,4 @@
-# architecture — dsh-optimize
+# architecture — @ph0ryn/dsh-optimizations
 
 > この文書が答える問い: **どう設計されているか**。構造、データフロー、依存する DSH の契約、技術的制約を書く。要求そのものは `spec.md`、採用理由と代替案は `decisions.md` に置き、ここで重複させない。
 
@@ -45,18 +45,18 @@ Cordis のサービス注入は `src/client.ts` の `export const inject = [...]
 
 3つの識別子を混同しない。値は次のとおり。
 
-| 識別子           | 値                             | 使われる場所                                               |
-| ---------------- | ------------------------------ | ---------------------------------------------------------- |
-| モジュール id    | `dsh-optimize`（パッケージ名） | `window.__ModuleLoader__.load({ id })`                     |
-| Host エントリ id | `optimize`                     | `cordis.patch.yml` の `id`、`ctx.configForms.get()` の引数 |
-| セクション id    | `optimize`                     | `settings.section` / `settings.section.icon` の `id`       |
+| 識別子           | 値                                          | 使われる場所                                               |
+| ---------------- | ------------------------------------------- | ---------------------------------------------------------- |
+| モジュール id    | `@ph0ryn/dsh-optimizations`（パッケージ名） | `window.__ModuleLoader__.load({ id })`                     |
+| Host エントリ id | `optimizations`                             | `cordis.patch.yml` の `id`、`ctx.configForms.get()` の引数 |
+| セクション id    | `optimizations`                             | `settings.section` / `settings.section.icon` の `id`       |
 
 ## パッケージ構成
 
 ```text
-packages/optimize/
+packages/optimizations/
   package.json        exports: . / ./client、dsh.client.inject、dsh.bundle.patch
-  cordis.patch.yml    - insert: [{ id: optimize, name: dsh-optimize }]
+  cordis.patch.yml    - insert: [{ id: optimizations, name: "@ph0ryn/dsh-optimizations" }]
   vite.config.ts      2エントリの pack 設定
   tsconfig.json       jsx: react-jsx
   src/
@@ -98,7 +98,7 @@ packages/optimize/
 - すべてのスロット出口は `data-slot="<slotKey>"` を持つ `display: contents` の要素で包まれる。
   CSS の対象化はこの属性を起点にし、レイアウトは子要素に書く。
 - 本プラグインは `list` / `keyed` への追加、CSS、テーマトークンだけを使う。
-  追加時の `id` とキーには `optimize-` 接頭辞を付け、他プラグインとセルを共有しない。
+  追加時の `id` とキーには `optimizations-` 接頭辞を付け、他プラグインとセルを共有しない。
 
 ## 機能レジストリ
 
@@ -149,7 +149,7 @@ export type FeatureId = (typeof FEATURES)[number]["id"];
 
 ```ts
 export const messageTime: Plugin.Object = {
-  name: "optimize/message-time",
+  name: "optimizations/message-time",
   inject: ["slots"],
   apply(ctx) {
     // ctx.effect(...) で登録し、後始末は cordis に任せる
@@ -188,7 +188,7 @@ ctx.effect(() => {
 });
 ```
 
-- `ctx.configForms.get(entryId)` の `entryId` は **Host Loader のエントリ id**（`optimize`）と一致させる。
+- `ctx.configForms.get(entryId)` の `entryId` は **Host Loader のエントリ id**（`optimizations`）と一致させる。
 - スナップショットが `undefined` の間は何も適用しない。OFF 既定を先に適用してしまう事故を避ける。
 - 差分は `diffFeatures` に集約し、ON/OFF の辺だけを mount/dispose する。`applyFeatureDiff` は実装マップに無い id を例外にする。
 - runtime は registry と実装マップを引数で受け取れる（既定は `FEATURES` / `CLIENT_IMPLEMENTATIONS`）。テストは合成 registry を渡す。
@@ -244,10 +244,10 @@ Host が名前空間を配信している間だけ登録する。
 
 ```ts
 ctx.effect(() =>
-  ctx.configForms.whileServed(["optimize"], () =>
+  ctx.configForms.whileServed(["optimizations"], () =>
     ctx.slots.inject("settings.section", () =>
       ctx.slots.register(
-        { name: "settings.section", id: "optimize", order: 25, label: "Optimizations" },
+        { name: "settings.section", id: "optimizations", order: 25, label: "Optimizations" },
         SettingsPage,
       ),
     ),
@@ -263,7 +263,7 @@ ctx.effect(() =>
 - ページの状態は `form.getSnapshot()` を `useSyncExternalStore` で購読する。書き込みは `form.set(id, boolean)`、
   一括操作は `form.mutate(ops)` で1回の書き込みにまとめる。
 - 書き込みが拒否されたらスナップショットが自動で再読込されるため、画面は現在値に戻り、行内にエラーを出す。
-- スタイルは設定ページが開いている間だけ、ページが `style[data-plugin="dsh-optimize"]` を描画する。
+- スタイルは設定ページが開いている間だけ、ページが `style[data-plugin="@ph0ryn/dsh-optimizations"]` を描画する。
   設定を閉じると React が要素を外すため、通常の画面にはプラグイン由来のスタイルが残らない。
 
 ## コンパクトサイドバー（compactSidebar）

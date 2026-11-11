@@ -9,7 +9,7 @@ import type {} from "@deepseek-ai/dsh-settings";
 export { Config };
 
 /** Host Loader entry id; also the settings namespace and section id. */
-export const name = "optimize";
+export const name = "optimizations";
 
 /**
  * Versions this plugin was developed against: the workspace type baseline
@@ -23,7 +23,7 @@ export function apply(ctx: Context, config: Config): void {
   const version = getDshRuntimeVersion();
   if (!EXPECTED_DSH_VERSIONS.includes(version)) {
     ctx.logger.warn(
-      "dsh-optimize expects DSH %s; running %s. Compatibility is unverified; continuing.",
+      "@ph0ryn/dsh-optimizations expects DSH %s; running %s. Compatibility is unverified; continuing.",
       EXPECTED_DSH_VERSIONS.join(", "),
       version,
     );

@@ -12,7 +12,7 @@ const FEATURES: readonly FeatureMeta[] = [
   { id: "hostLive", group: "host", host: true },
 ];
 const IMPLEMENTATIONS = {
-  clientLive: { name: "optimize/client-live", apply() {} },
+  clientLive: { name: "optimizations/client-live", apply() {} },
 };
 
 test("client runtime waits for the Host value before applying anything", () => {
@@ -23,7 +23,7 @@ test("client runtime waits for the Host value before applying anything", () => {
 
   fake.setSnapshot({ clientLive: true });
   assert.equal(run.fibers.length, 1);
-  assert.equal(run.fibers[0].name, "optimize/client-live");
+  assert.equal(run.fibers[0].name, "optimizations/client-live");
   run.dispose();
 });
 

@@ -13,8 +13,8 @@ const FEATURES: readonly FeatureMeta[] = [
   { id: "clientLive", group: "conversation", client: true },
 ];
 const IMPLEMENTATIONS = {
-  hostLive: { name: "optimize/host-live", apply() {} },
-  hostRestart: { name: "optimize/host-restart", apply() {} },
+  hostLive: { name: "optimizations/host-live", apply() {} },
+  hostRestart: { name: "optimizations/host-restart", apply() {} },
 };
 
 function createFakeConfig() {
@@ -42,15 +42,21 @@ test("host runtime syncs once at startup and only follows volatile updates after
 
   assert.deepEqual(
     run.fibers.map((fiber) => fiber.name).sort(),
-    ["optimize/host-live", "optimize/host-restart"],
+    ["optimizations/host-live", "optimizations/host-restart"],
     "startup mounts the current ON values, including restart-only features",
   );
 
   fake.set("hostLive", false);
   assert.equal(run.fibers.length, 2, "no change is applied before the Loader notification");
   run.emitVolatileUpdate();
-  assert.equal(run.fibers.find((fiber) => fiber.name === "optimize/host-live")?.disposed, true);
-  assert.equal(run.fibers.find((fiber) => fiber.name === "optimize/host-restart")?.disposed, false);
+  assert.equal(
+    run.fibers.find((fiber) => fiber.name === "optimizations/host-live")?.disposed,
+    true,
+  );
+  assert.equal(
+    run.fibers.find((fiber) => fiber.name === "optimizations/host-restart")?.disposed,
+    false,
+  );
   run.dispose();
 });
 
@@ -63,7 +69,7 @@ test("host runtime mounts a feature turned ON and disposes it when turned OFF", 
   fake.set("hostLive", true);
   run.emitVolatileUpdate();
   assert.equal(run.fibers.length, 1);
-  assert.equal(run.fibers[0].name, "optimize/host-live");
+  assert.equal(run.fibers[0].name, "optimizations/host-live");
 
   fake.set("hostLive", false);
   run.emitVolatileUpdate();
@@ -76,7 +82,7 @@ test("restart-only features are decided at startup and never remount on toggles"
   const fake = createFakeConfig();
   fake.set("hostRestart", true);
   startHostRuntime(run.ctx, fake.config, { features: FEATURES, implementations: IMPLEMENTATIONS });
-  const restartFiber = run.fibers.find((fiber) => fiber.name === "optimize/host-restart");
+  const restartFiber = run.fibers.find((fiber) => fiber.name === "optimizations/host-restart");
   assert.ok(restartFiber);
 
   fake.set("hostRestart", false);

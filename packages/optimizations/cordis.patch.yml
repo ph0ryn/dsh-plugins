@@ -1,0 +1,3 @@
+- insert:
+    - id: optimizations
+      name: "@ph0ryn/dsh-optimizations"

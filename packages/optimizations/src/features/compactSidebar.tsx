@@ -57,14 +57,14 @@ div:has(> [data-slot="sidebar"]) { container-type: inline-size; }
   }
   [data-slot="sidebar"] > div > nav > span > button > span:last-child { display: none !important; }
 }
-.optimize-sidebar-nav {
+.optimizations-sidebar-nav {
   display: grid;
   gap: 2px;
   margin-block-end: 4px;
   padding-block-end: 6px;
   border-block-end: 1px solid var(--dsw-alias-border-l1);
 }
-.optimize-sidebar-nav-row {
+.optimizations-sidebar-nav-row {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -80,14 +80,14 @@ div:has(> [data-slot="sidebar"]) { container-type: inline-size; }
   text-align: start;
   cursor: pointer;
 }
-.optimize-sidebar-nav-row:hover,
-.optimize-sidebar-nav-row:focus-visible { background: var(--dsw-alias-border-l1); }
-.optimize-sidebar-nav-row:focus-visible {
+.optimizations-sidebar-nav-row:hover,
+.optimizations-sidebar-nav-row:focus-visible { background: var(--dsw-alias-border-l1); }
+.optimizations-sidebar-nav-row:focus-visible {
   outline: 2px solid var(--dsw-alias-brand-primary);
   outline-offset: 1px;
 }
-.optimize-sidebar-nav-row[aria-current="true"] { background: var(--dsw-alias-border-l1); font-weight: 600; }
-.optimize-sidebar-nav-icon {
+.optimizations-sidebar-nav-row[aria-current="true"] { background: var(--dsw-alias-border-l1); font-weight: 600; }
+.optimizations-sidebar-nav-icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -96,7 +96,7 @@ div:has(> [data-slot="sidebar"]) { container-type: inline-size; }
   flex: 0 0 auto;
   color: var(--dsw-alias-label-secondary);
 }
-.optimize-sidebar-nav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.optimizations-sidebar-nav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 `;
 
 /** Services the menu rows read; the registration's inject face carries them. */
@@ -159,23 +159,23 @@ export function SidebarNavRows({ slots, layout, onDismiss }: SidebarNavRowsProps
     () => layout.panelInfo.getSnapshot().activePanelId,
   );
   return (
-    <div className="optimize-sidebar-nav" role="group" aria-label="Sidebar navigation">
+    <div className="optimizations-sidebar-nav" role="group" aria-label="Sidebar navigation">
       {panelRows(slots).map(({ id, label, Icon }) => (
         <button
           key={id}
           type="button"
           role="menuitem"
-          className="optimize-sidebar-nav-row"
+          className="optimizations-sidebar-nav-row"
           aria-current={activePanelId === id ? "true" : undefined}
           onClick={() => {
             onDismiss();
             layout.selectPanel(id);
           }}
         >
-          <span className="optimize-sidebar-nav-icon" aria-hidden="true">
+          <span className="optimizations-sidebar-nav-icon" aria-hidden="true">
             {Icon ? <Icon size={16} active={activePanelId === id} /> : null}
           </span>
-          <span className="optimize-sidebar-nav-label">{label}</span>
+          <span className="optimizations-sidebar-nav-label">{label}</span>
         </button>
       ))}
     </div>
@@ -184,8 +184,8 @@ export function SidebarNavRows({ slots, layout, onDismiss }: SidebarNavRowsProps
 
 function installStyles(): () => void {
   const style = document.createElement("style");
-  style.dataset.plugin = "dsh-optimize";
-  style.dataset.optimizeFeature = "compactSidebar";
+  style.dataset.plugin = "@ph0ryn/dsh-optimizations";
+  style.dataset.optimizationsFeature = "compactSidebar";
   style.textContent = COMPACT_SIDEBAR_STYLES;
   document.head.append(style);
   return () => style.remove();
@@ -193,7 +193,7 @@ function installStyles(): () => void {
 
 /** One client feature: compact the sidebar header and fold its panel rows into the More menu. */
 export const compactSidebar: Plugin.Object = {
-  name: "optimize/compact-sidebar",
+  name: "optimizations/compact-sidebar",
   inject: ["slots", "layout"],
   apply(ctx: Context) {
     ctx.effect(installStyles);
@@ -202,7 +202,7 @@ export const compactSidebar: Plugin.Object = {
         ctx.slots.register(
           {
             name: "sidebar.panellist.actions",
-            id: "optimize-sidebar-nav",
+            id: "optimizations-sidebar-nav",
             order: -100,
             inject: () => ({ slots: ctx.slots, layout: ctx.layout }),
           },

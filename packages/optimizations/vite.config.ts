@@ -23,7 +23,7 @@ export default defineConfig({
       deps: { neverBundle: true },
       define: { "process.env.NODE_ENV": JSON.stringify("production") },
       banner:
-        'window.__ModuleLoader__.load({id:"dsh-optimize",factory:(require)=>{var module={exports:{}};var exports=module.exports;',
+        'window.__ModuleLoader__.load({id:"@ph0ryn/dsh-optimizations",factory:(require)=>{var module={exports:{}};var exports=module.exports;',
       footer: "return module.exports;}});",
     },
   ],
