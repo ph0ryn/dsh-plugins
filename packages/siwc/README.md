@@ -37,7 +37,7 @@ Build this plugin and install it into your Web profile:
 
 ```sh
 pnpm --filter dsh-siwc pack --pack-destination ./artifacts
-dsh plugin --profile web add ./artifacts/dsh-siwc-0.1.3.tgz --ignore-scripts
+dsh plugin --profile web add ./artifacts/dsh-siwc-0.1.4.tgz --ignore-scripts
 ```
 
 ## Use
