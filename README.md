@@ -4,9 +4,10 @@ Plugins for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
 
 ## Plugins
 
-| Plugin                    | Description                                |
-| ------------------------- | ------------------------------------------ |
-| [dsh-siwc](packages/siwc) | Use your ChatGPT plan in DeepSeek Harness. |
+| Plugin                            | Description                                                                                |
+| --------------------------------- | ------------------------------------------------------------------------------------------ |
+| [dsh-siwc](packages/siwc)         | Use your ChatGPT plan in DeepSeek Harness.                                                 |
+| [dsh-optimize](packages/optimize) | Small improvements across the Web GUI and host behaviour, switched on or off individually. |
 
 ## Development
 

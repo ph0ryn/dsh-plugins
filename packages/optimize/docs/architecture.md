@@ -31,13 +31,13 @@ Client は一覧と Client 機能の適用に使う。
 
 ### マニフェスト宣言
 
-| フィールド            | 値・意味                                                                                              |
-| --------------------- | ----------------------------------------------------------------------------------------------------- |
-| `dsh.client.platform` | `"web"`。これ以外だとクライアントバンドルは配信されない                                               |
-| `dsh.client.inject`   | 依存する**パッケージ名**の宣言。Cordis のサービス注入ではない                                         |
-| `dsh.client.external` | 共有モジュール表のベースライン外で `require` するモジュール名（本プラグインは primitives を宣言する） |
-| `dsh.bundle.patch`    | 適用する `cordis.patch.yml`。宣言があると `dsh plugin add` が profile のバンドル層へ自動で加える      |
-| `exports["./client"]` | Module Loader バンドル。無いとクライアント配信時に失敗する                                            |
+| フィールド            | 値・意味                                                                                                                                                                           |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dsh.client.platform` | `"web"`。これ以外だとクライアントバンドルは配信されない                                                                                                                            |
+| `dsh.client.inject`   | 依存する**パッケージ名**の宣言。Cordis のサービス注入ではない                                                                                                                      |
+| `dsh.client.external` | 共有モジュール表の**ベースライン外**で `require` するモジュール名。本プラグインは宣言しない（`react` / `react/jsx-runtime` / primitives はシェルの `PLATFORM_MODULES` に含まれる） |
+| `dsh.bundle.patch`    | 適用する `cordis.patch.yml`。宣言があると `dsh plugin add` が profile のバンドル層へ自動で加える                                                                                   |
+| `exports["./client"]` | Module Loader バンドル。無いとクライアント配信時に失敗する                                                                                                                         |
 
 Cordis のサービス注入は `src/client.ts` の `export const inject = [...]` で宣言する（上記とは別系統）。
 
@@ -53,23 +53,27 @@ Cordis のサービス注入は `src/client.ts` の `export const inject = [...]
 
 ## パッケージ構成
 
-```
+```text
 packages/optimize/
-  package.json        exports: . / ./client、dsh.client.inject / external、dsh.bundle.patch
+  package.json        exports: . / ./client、dsh.client.inject、dsh.bundle.patch
   cordis.patch.yml    - insert: [{ id: optimize, name: dsh-optimize }]
   vite.config.ts      2エントリの pack 設定
   tsconfig.json       jsx: react-jsx
   src/
-    index.ts           Host half（バージョン警告、Host ランタイム起動）
+    index.ts           Host half（バージョン警告、スキーマ公開、Host ランタイム起動）
     features.ts        機能レジストリ（Host/Client 共有の純データ）
-    config.ts          features.ts から生成する設定スキーマ
+    config.ts          features.ts から生成する設定スキーマと配信マーカー
+    diff.ts            ON/OFF 差分の純関数（両ランタイム共有）
+    fiber.ts           機能 fiber の mount/dispose と実装解決
+    section.ts         settings.section 登録の固定値
     client.ts          Client half（locale 非依存）
     host/
       runtime.ts       Host 側の機能 fiber の差分適用
     client/
       runtime.ts       Client 側の機能 fiber の差分適用
     page/
-      SettingsPage.tsx 設定タブ本体（検索、一括操作、行の一覧）
+      SettingsPage.tsx 設定タブ本体の配線（primitives を渡す）
+      view.tsx         設定タブの描画（検索、一括操作、行の一覧）
       FeatureRow.tsx   1機能の行
       copy.ts          表示名・説明・固定文言（英語）
       styles.ts        設定ページの CSS
@@ -78,6 +82,7 @@ packages/optimize/
       client.ts        Client 機能の実装マップ
       <feature>.tsx    Client 機能の実装（cordis プラグイン）
       <feature>.host.ts Host 機能の実装（cordis プラグイン）
+    testing.ts         テスト用のダミー ctx / ConfigForm
   docs/
     spec.md architecture.md verification.md development.md decisions.md
 ```
@@ -123,6 +128,13 @@ export type FeatureId = (typeof FEATURES)[number]["id"];
   `.volatile()` を付ける（付けないと設定フォームに露出せず、編集も拒否される）。
   既定値は常に `false`。機能固有のパラメータを持たせたい場合は、この生成に
   追加フィールドを足す拡張点を用意する（v1 では使わない）。
+- **配信マーカー**: `settings.describe()` は volatile フィールドを1つも持たない
+  名前空間を配信対象から外す。機能が0件の間も設定タブを出すため、スキーマには
+  内部フィールド `schemaVersion`（volatile、既定値 1）を常に含める。機能トグルでは
+  なく設定ドキュメントの互換バージョンであり、設定ページは描画しない。
+- **差分適用**は `src/diff.ts` の純関数 `diffFeatures(features, previous, next)` に集約する。
+  面ごとのフィルタ（`liveFeatures(features, side)`）は呼び出し側で行い、両ランタイムは
+  同じ遷移規則を共有する。
 - **実装マップ**は面ごとに分ける。`src/features/client.ts` と `src/features/host.ts` が
   `Partial<Record<FeatureId, Plugin.Object>>` を持ち、`FEATURES` の `host` / `client` フラグと
   過不足が一致することをテストで固定する（面ごとに別バンドルなので同じマップに同居させない。
@@ -151,38 +163,34 @@ export const messageTime: Plugin.Object = {
 
 ## Client ランタイム（トグルの適用）
 
+Client 側は共有 `ConfigForm` のスナップショットを購読し、差分だけを fiber に反映する。
+
 ```ts
-const form = ctx.configForms.get<Partial<Record<FeatureId, boolean>>>("optimize");
-const fibers = new Map<FeatureId, Fiber>();
+// src/client/runtime.ts（要点）
+const immediate = liveFeatures(source.features, "client");
 
 ctx.effect(() => {
+  let previous: Readonly<Record<string, unknown>> = {};
   const sync = () => {
     const value = form.getSnapshot().value;
     if (!value) return; // 未配信・読み込み中は何も適用しない
-    for (const feature of FEATURES) {
-      if (!feature.client) continue;
-      const id = feature.id;
-      const on = value[id] === true;
-      const running = fibers.get(id);
-      if (on && !running) fibers.set(id, ctx.plugin(CLIENT_IMPLEMENTATIONS[id]));
-      else if (!on && running) {
-        void running.dispose();
-        fibers.delete(id);
-      }
-    }
+    const diff = diffFeatures(immediate, previous, value);
+    previous = value;
+    applyFeatureDiff(ctx, source.implementations, fibers, diff);
   };
   sync();
-  const unsubscribe = form.subscribe(sync);
+  const off = form.subscribe(sync);
   return () => {
-    unsubscribe();
-    for (const fiber of fibers.values()) void fiber.dispose();
-    fibers.clear();
+    off();
+    disposeFibers(fibers);
   };
 });
 ```
 
 - `ctx.configForms.get(entryId)` の `entryId` は **Host Loader のエントリ id**（`optimize`）と一致させる。
 - スナップショットが `undefined` の間は何も適用しない。OFF 既定を先に適用してしまう事故を避ける。
+- 差分は `diffFeatures` に集約し、ON/OFF の辺だけを mount/dispose する。`applyFeatureDiff` は実装マップに無い id を例外にする。
+- runtime は registry と実装マップを引数で受け取れる（既定は `FEATURES` / `CLIENT_IMPLEMENTATIONS`）。テストは合成 registry を渡す。
 - 設定の変更は設定ドキュメントの更新として伝播するため、ポーリングもリロードも不要。
 - 書き込みは `configForms` が revision で直列化する。古い revision の書き込みは拒否され、
   スナップショットが再読込されるため、画面は現在値に戻る。
@@ -194,45 +202,40 @@ Host 側には設定フォームは無い。volatile フィールドの変更は
 参照値を差し替え、所有 fiber に `loader/volatile-update` を通知する。Host ランタイムはこれを購読する。
 
 ```ts
-// src/host/runtime.ts
-export function startHostRuntime(ctx: Context, config: Config): void {
-  const fibers = new Map<FeatureId, Fiber>();
+// src/host/runtime.ts（要点）
+const immediate = liveFeatures(source.features, "host");
+const restart = source.features.filter((f) => f.host && f.reload === "restart");
 
-  const sync = () => {
-    for (const feature of FEATURES) {
-      if (!feature.host || feature.reload === "restart") continue;
-      const on = config[feature.id].get() === true;
-      const running = fibers.get(feature.id);
-      if (on && !running) fibers.set(feature.id, ctx.plugin(HOST_IMPLEMENTATIONS[feature.id]));
-      else if (!on && running) {
-        void running.dispose();
-        fibers.delete(feature.id);
-      }
-    }
+const snapshot = () =>
+  Object.fromEntries(immediate.map((f) => [f.id, config[f.id].get() === true]));
+
+const sync = () => {
+  const next = snapshot();
+  const diff = diffFeatures(immediate, previous, next);
+  previous = next;
+  applyFeatureDiff(ctx, source.implementations, fibers, diff);
+};
+
+ctx.effect(() => {
+  for (const feature of restart) {
+    // 再起動反映: 起動時の値だけを見て、以後は購読しない。
+    if (config[feature.id].get() === true)
+      fibers.set(feature.id, ctx.plugin(implementationFor(source.implementations, feature.id)));
+  }
+  sync();
+  const off = ctx.on("loader/volatile-update", sync);
+  return () => {
+    off();
+    disposeFibers(fibers);
   };
-
-  ctx.effect(() => {
-    for (const feature of FEATURES) {
-      if (!feature.host || feature.reload !== "restart") continue;
-      // 再起動反映: 起動時の値だけを見て、以後は購読しない。
-      if (config[feature.id].get() === true)
-        fibers.set(feature.id, ctx.plugin(HOST_IMPLEMENTATIONS[feature.id]));
-    }
-    sync();
-    const off = ctx.on("loader/volatile-update", () => sync());
-    return () => {
-      off();
-      for (const fiber of fibers.values()) void fiber.dispose();
-      fibers.clear();
-    };
-  });
-}
+});
 ```
 
 - `loader/volatile-update` は値が実際に変わったときだけ、所有 fiber に配送される。
   通知時点で新しい値は commit 済みなので、`config.<id>.get()` は新しい値を返す。
 - イベント購読には `@deepseek-ai/cordis-plugin-loader` の型宣言が必要になる。
 - `reload: "restart"` の機能は起動時にだけ評価し、トグルを変えても再マウントしない。
+- 起動時に1回 `sync()` するため、起動時点で ON の機能は `loader/volatile-update` を待たずに mount される。
 
 ## 設定タブ
 
@@ -252,32 +255,33 @@ ctx.effect(() =>
 ```
 
 - `label` は静的文字列。`locale` を宣言しないため、locale 辞書の登録は不要（対応する辞書が無いと描画時に失敗する）。
-- アイコンは `settings.section.icon` に同じ `id` で登録する。`size` と `active` を受け取る。
+- アイコンはシェル既定の glyph（gear）に任せる。`settings.section.icon` は DSH 0.2.2 系のスロットで、
+  ワークスペースの型基準（0.2.1-rc.2）には存在しない。型基準を上げるまで登録しない（`decisions.md` D15）。
 - `order: 25` は出荷セクション（account -10、general 0、models 10、plugins 15、agent-presets 20）の直後で、
   既存の並びに割り込まない。
 - ページの状態は `form.getSnapshot()` を `useSyncExternalStore` で購読する。書き込みは `form.set(id, boolean)`、
   一括操作は `form.mutate(ops)` で1回の書き込みにまとめる。
 - 書き込みが拒否されたらスナップショットが自動で再読込されるため、画面は現在値に戻り、行内にエラーを出す。
-- スタイルは `style[data-plugin="dsh-optimize"]` として `ctx.effect` で出し入れする。
-  ホストはプラグインのアンロード時にこの属性のスタイルを掃除する。
+- スタイルは設定ページが開いている間だけ、ページが `style[data-plugin="dsh-optimize"]` を描画する。
+  設定を閉じると React が要素を外すため、通常の画面にはプラグイン由来のスタイルが残らない。
 
 ## 依存する DSH の契約
 
 利用してよいのは以下に限る。バージョン差の影響を受けるため、追加時は `development.md` の追従手順に従う。
 
-| 契約                                                     | 用途                                             |
-| -------------------------------------------------------- | ------------------------------------------------ |
-| `settings.section`（list slot）                          | 設定タブの登録                                   |
-| `settings.section.icon`（list slot）                     | ナビゲーションアイコン                           |
-| `ctx.configForms.get` / `set` / `mutate` / `whileServed` | 設定値の読み書き、配信状況の監視                 |
-| `ctx.slots.inject` / `ctx.slots.register`                | スロットへの寄与                                 |
-| `ctx.plugin` と `Fiber.dispose`                          | 機能のマウント・アンマウント（両面）             |
-| `loader/volatile-update` イベント                        | Host 側のトグル反映（所有 fiber に配送される）   |
-| `ctx.theme.overrideTokens`                               | 色・トークンの上書き（戻り値の disposer で解除） |
-| `data-slot="<slot 名>"` 属性                             | 既存 UI を CSS で対象化する際の起点              |
-| シェルが公開する `data-*` 属性                           | 状態に応じた CSS の条件付け                      |
-| `--dsw-*` / `--dsh-*` CSS 変数                           | 見た目の調整                                     |
-| `@deepseek-ai/dsh-client-ui-primitives`                  | `Switch` などの UI 部品、アイコン                |
+| 契約                                                     | 用途                                                                        |
+| -------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `settings.section`（list slot）                          | 設定タブの登録                                                              |
+| `settings.section.icon`（list slot、DSH ≥ 0.2.2）        | ナビゲーションアイコン（現行の型基準では未使用）                            |
+| `ctx.configForms.get` / `set` / `mutate` / `whileServed` | 設定値の読み書き、配信状況の監視                                            |
+| `ctx.slots.inject` / `ctx.slots.register`                | スロットへの寄与                                                            |
+| `ctx.plugin` と `Fiber.dispose`                          | 機能のマウント・アンマウント（両面）                                        |
+| `loader/volatile-update` イベント                        | Host 側のトグル反映（所有 fiber に配送される）                              |
+| `ctx.theme.overrideTokens`                               | 色・トークンの上書き（戻り値の disposer で解除）                            |
+| `data-slot="<slot 名>"` 属性                             | 既存 UI を CSS で対象化する際の起点                                         |
+| シェルが公開する `data-*` 属性                           | 状態に応じた CSS の条件付け                                                 |
+| `--dsw-*` / `--dsh-*` CSS 変数                           | 見た目の調整                                                                |
+| `@deepseek-ai/dsh-client-ui-primitives`                  | `Switch` / `Input` / `Button`（シェルの `PLATFORM_MODULES` 経由で require） |
 
 ### 禁止事項
 
@@ -293,7 +297,8 @@ ctx.effect(() =>
 1. Host 起動 → 設定スキーマ公開 → `settings.configure({ auto: false })` で自動生成ページを抑止
    （現行のクライアントは `autoGenerate` を消費しないため実効は no-op だが、将来の互換のため宣言する）
    → Host ランタイムが即時反映機能を起動時値で mount し、`loader/volatile-update` を購読する。
-2. Client 起動 → 名前空間の配信を待つ → 設定タブ登録 → Client ランタイム開始。
+2. Client 起動 → Client ランタイム開始（スナップショットが `undefined` の間は何もしない）
+   → 名前空間の配信を待つ → 設定タブ登録。タブは配信が止まると自動で外れる。
 3. トグル変更 → 設定ドキュメント更新 → Loader が volatile 値を commit
    → Host は `loader/volatile-update`、Client はスナップショット購読で fiber を mount/dispose。
 4. HMR や fiber 再起動 → `ctx.effect` の後始末が走り、次回起動時に再適用される。

@@ -74,7 +74,7 @@ DSH 本体の更新との切り分けもできなくなる。OFF 既定なら、
 
 ## D6 設定タブはトップレベルのセクションにする
 
-**決定**: `settings.section` を使い、`id: optimize`、`order: 40`、`label: "Optimization"` で登録する。
+**決定**: `settings.section` を使い、`id: optimize`、`order: 25`、`label: "Optimization"` で登録する。
 
 **代替案**: Settings の Plugins セクション内のタブ（`settings.plugins.tab`）、General の行（`settings.general.item`）。
 
@@ -95,7 +95,8 @@ DSH 本体の更新との切り分けもできなくなる。OFF 既定なら、
 `checked` / `onChange` / `label` / `disabled` を持つ制御コンポーネントで、即時保存のトグルにそのまま使える。
 
 **影響**: devDependency として primitives を追加し、バージョンは動作確認済みの DSH に合わせる。
-`dsh.client.external` に primitives を宣言する。peerDependency には置かない
+primitives はシェルの共有モジュール表（`PLATFORM_MODULES`）に含まれるため、`dsh.client.external` には
+宣言しない（external はベースライン外の要求だけを書く）。peerDependency にも置かない
 （`@deepseek-ai/dsh-*` 名の peer は DSH 本体のバージョン要件として評価され、意図しない互換ゲートになる）。
 シェルのモジュール表から消えた場合はページの描画が失敗するため、`development.md` の追従手順で確認する。
 
@@ -180,3 +181,35 @@ commit 済みなので、通知を受けてから `config.<id>.get()` を読め�
 
 **影響**: `@deepseek-ai/cordis-plugin-loader` の型宣言に依存する。Loader を経由しない変更
 （profile の YAML を直接編集するなど）は次回起動まで反映されない。
+
+## D14 機能0件でも設定タブを出すため、内部フィールド `schemaVersion` を持つ
+
+**決定**: 生成する設定スキーマに、機能とは別の volatile フィールド `schemaVersion`（既定値 1）を常に含める。
+
+**代替案**: 機能が1件も無い間は設定タブを出さない、スキーマのルートを volatile にする、機能0件のときだけダミー機能を登録する。
+
+**理由**: `settings.describe()` は volatile フィールドを1つも持たない名前空間を配信対象から外すため、
+機能0件のフラットなスキーマでは `whileServed(["optimize"])` が発火せず、設定タブが登録されない。
+機能が追加されるまでの暫定ではなく、`schemaVersion` は将来キーを移行するときの設定ドキュメント互換
+バージョンとしても使える。ルートを volatile にすると `config` が `Volatile<...>` になり、
+`config.<featureId>.get()` というフィールド単位の読み取りができなくなる。ダミー機能は「機能」の一覧に
+偽物を混ぜることになり、契約（S2）と実装マップの整合性テストを壊す。
+
+**影響**: 設定スキーマは「機能のフィールド + `schemaVersion`」になる。`schemaVersion` は設定ページに
+描画せず、機能トグルとしても扱わない。フィールド単位の書き込み（`form.set(id, boolean)`）は機能フィールドに
+対して従来どおり動く。
+
+## D15 ナビゲーションアイコンは当面シェル既定の glyph に任せる
+
+**決定**: `settings.section.icon` を登録せず、シェルが表示する既定のアイコン（gear）を使う。
+
+**代替案**: 型基準を DSH 0.2.2 系に上げて `settings.section.icon` を登録する、独自アイコンを登録するために
+型定義を module augmentation で補う。
+
+**理由**: `settings.section.icon` は DSH 0.2.2 系で追加されたスロットで、ワークスペースの型基準である
+0.2.1-rc.2 の `SlotMap` には存在しない。未宣言のスロットへの `register()` は実行時に例外になり、
+スロット契約を型で偽装することにもなる。契約 S1 が要求する「アイコンが表示される」はシェル既定の
+glyph で満たされる。型基準を 0.2.2 系へ上げる作業は DSH 全体の依存更新として別に行う。
+
+**影響**: 設定ナビゲーションのアイコンは他セクションの既定 glyph と同じ見た目になる。DSH の型基準を
+上げた時点で `settings.section.icon` の登録を追加できる。

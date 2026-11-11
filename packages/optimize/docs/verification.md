@@ -4,62 +4,74 @@
 
 ## 検証する不変条件
 
-| #   | 不変条件                                                                                                           | 対応する契約 |
-| --- | ------------------------------------------------------------------------------------------------------------------ | ------------ |
-| I1  | `FEATURES` の全 id に、設定スキーマのフィールド・各面の実装・英語の表示名と説明が存在する                          | S1, S2       |
-| I2  | 設定スキーマの全フィールドが volatile で、既定値が false                                                           | S2, S4       |
-| I3  | 設定タブは `id: optimize` / `order: 25` / `label: "Optimization"` で1回だけ登録される                              | S1           |
-| I4  | 差分適用は、ON の機能だけを mount し、OFF になった機能だけを dispose する（Host と Client の両面で）               | S2, S3       |
-| I5  | 全機能 OFF のとき、注入するスタイル・スロット寄与・購読・Host 側の登録がゼロである                                 | S2, S3       |
-| I6  | 設定の書き込みは `configForms` 経由で、トグル1操作が 1 write に収まる（一括操作は `mutate` 1回）                   | S3, S4       |
-| I7  | 1機能の apply 失敗が他機能と設定ページに影響しない。両面の機能では片側の失敗が他方を止めない                       | S6           |
-| I8  | ビルド成果物が Module Loader 契約（`window.__ModuleLoader__.load`、id `dsh-optimize`）を満たし、JSX が残っていない | S1           |
-| I9  | モジュール id / Host エントリ id / セクション id の3つが設計どおりで、互いに取り違えられていない                   | S1, S4       |
-| I10 | 設定の書き込みが profile の設定ドキュメントに反映され、再起動後に復元される                                        | S4           |
-| I11 | Host 側の機能は `loader/volatile-update` の後にだけ mount/dispose され、起動時にも現在値で1回同期される            | S2, S3       |
-| I12 | 再起動反映の機能は起動時にだけ評価され、トグルでは再マウントされず、行に「再起動が必要」と表示される               | S2, S3       |
+| #   | 不変条件                                                                                                                                     | 対応する契約 |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| I1  | `FEATURES` の全 id に、設定スキーマのフィールド・各面の実装・英語の表示名と説明が存在する                                                    | S1, S2       |
+| I2  | 機能の全フィールドが volatile で既定値が false。`schemaVersion` だけが非機能フィールドとして volatile（既定値 1）                            | S2, S4       |
+| I3  | 設定タブは `id: optimize` / `order: 25` / `label: "Optimization"` で1回だけ登録される（`src/section.ts`）                                    | S1           |
+| I4  | 差分適用は、ON の機能だけを mount し、OFF になった機能だけを dispose する（Host と Client の両面で）                                         | S2, S3       |
+| I5  | 全機能 OFF のとき、機能由来のスタイル・スロット寄与・購読・Host 側の登録がゼロである。設定ページのスタイルはページを開いている間だけ存在する | S2, S3       |
+| I6  | 設定の書き込みは `configForms` 経由で、トグル1操作が 1 write に収まる（一括操作は `mutate` 1回）                                             | S3, S4       |
+| I7  | 1機能の apply 失敗が他機能と設定ページに影響しない。両面の機能では片側の失敗が他方を止めない                                                 | S6           |
+| I8  | ビルド成果物が Module Loader 契約（`window.__ModuleLoader__.load`、id `dsh-optimize`）を満たし、JSX が残っていない（`src/dist.check.ts`）    | S1           |
+| I9  | モジュール id / Host エントリ id / セクション id の3つが設計どおりで、互いに取り違えられていない                                             | S1, S4       |
+| I10 | 設定の書き込みが profile の設定ドキュメントに反映され、再起動後に復元される                                                                  | S4           |
+| I11 | Host 側の機能は `loader/volatile-update` の後にだけ mount/dispose され、起動時にも現在値で1回同期される                                      | S2, S3       |
+| I12 | 再起動反映の機能は起動時にだけ評価され、トグルでは再マウントされず、行に「再起動が必要」と表示される                                         | S2, S3       |
 
 ## 自動テスト
 
-### レジストリ・スキーマ（Node の unit test）
+テストはパッケージ内で実行する。ページの `.tsx` を Node の型剥がしだけでは読み込めないため、
+`pnpm --filter dsh-optimize test` はテスト実行時のみ `tsx` ローダーを使う。
 
-- I1: `FEATURES` と Host / Client それぞれの実装マップのキー集合が、`host` / `client` フラグと一致する。
-  表示名・説明の辞書キーが全 id を網羅する。
-- I2: 生成したスキーマの各フィールドが `volatile` で既定値 false である。
-- I3: `buildSectionRegistration()` が返す `{ name, id, order, label }` を固定値と比較する。
-- I4: 差分計算を純関数 `diffFeatures(features, previous, next)` として切り出し、面ごとの mount/dispose の集合を
-  検証する（初期 `undefined`、部分的な値、全 ON → 全 OFF、無関係キーの混入、`reload: "restart"` の除外）。
-- I5: ダミー ctx で両ランタイムを起動し、全 OFF のとき `ctx.plugin` が呼ばれず `ctx.effect` の後始末で
-  登録がゼロに戻ることを検証する。
-- I11: ダミー ctx で Host ランタイムを起動し、`loader/volatile-update` を発火させたときだけ fiber が
-  増減すること、起動時に現在値で1回同期されることを検証する。
+```sh
+pnpm --filter dsh-optimize typecheck
+pnpm --filter dsh-optimize test
+pnpm --filter dsh-optimize build
+```
+
+### レジストリ・スキーマ（`src/features.test.ts`）
+
+- I1: `FEATURES` と両面の実装マップのキー集合、`COPY` の網羅、id の形式・グループ・作用面。
+- I2: 機能フィールドが volatile で既定値 false。`schemaVersion` は volatile・既定値 1。
+  機能以外のフィールドは `schemaVersion` だけ。
+- I3: `SECTION` の `{ name, id, order, label }` を固定値と比較する。
+
+### 差分適用（`src/diff.test.ts` / `src/hostRuntime.test.ts` / `src/clientRuntime.test.ts`）
+
+- I4: `diffFeatures` の初期 `{}`、部分的な値、全 ON → 全 OFF、無関係キー、非 boolean 値、面と再起動のフィルタ。
+- I5: ダミー ctx で両ランタイムを起動し、全 OFF のとき `ctx.plugin` が呼ばれず、後始末で
+  fiber と購読がゼロに戻ることを検証する。
+- I7: 実装マップに無い id を mount しようとすると例外になる（登録整合性は I1 で固定）。
+- I11: Host ランタイムは起動時に1回同期し、`loader/volatile-update` を発火させたときだけ fiber が
+  増減すること、通知前の値変更では何も起きないことを検証する。
 - I12: `reload: "restart"` の機能は起動時のみ mount され、イベント発火では変化しないことを検証する。
 
-### 設定ページ（react-test-renderer）
+ランタイムには合成 registry と実装マップを渡して検証する（`src/testing.ts` のダミー ctx / ConfigForm）。
 
-- I1: 行が `FEATURES` と同じ件数・順序で描画される。検索語で絞り込める。
-- I6: Switch の操作で `form.set(id, true)` が1回呼ばれる。一括 ON/OFF は `form.mutate` が1回だけ呼ばれる。
-- S5: `writable: false` のスナップショットで全トグルが disabled になり、読み取り専用の注記が出る。
+### 設定ページ（`src/settingsPage.test.ts`、react-test-renderer）
 
-### ビルド成果物（ビルド後の検査）
+- I1: 行が渡した registry と同じ件数・順序で描画され、作用面と再起動の表示が付く。空 registry では空状態。
+- I6: Switch 1操作で `form.set(id, true)` が1回。一括 ON / 一括 OFF / 初期値復帰は `form.mutate` が1回で、
+  初期値復帰は `unset` オペレーションになる。
+- S2: 名前・説明・状態・操作手段・作用面・反映方式が行に現れ、名前と説明で絞り込める。
+- S5: `writable: false` で全トグルと一括操作が disabled になり、読み取り専用の注記が出る。
+- S6: 書き込み拒否で現在値が再表示され、`role="alert"` のエラーが出る。
 
-- I8: `dist/client/client.cjs` が `window.__ModuleLoader__.load({id:"dsh-optimize"` で始まり、
-  外部モジュールを `require` し、`jsx` 相当の変換漏れ（生の JSX）が無い。
-- I8: `dist/server/index.js` が `name` と `Config` と `apply` を export する。
-- I9: クライアントバンドルの `id`、`cordis.patch.yml` の `id`、セクション登録の `id` を突き合わせ、
-  `dsh-optimize` / `optimize` / `optimize` の組になっていることを固定値で検査する。
+### ビルド成果物（`src/dist.check.ts`、`build` の一部）
 
-### 設定の永続化（ホスト統合テスト）
+- I8: `dist/client/client.cjs` が `window.__ModuleLoader__.load({id:"dsh-optimize",factory:...` で始まり、
+  評価できること（生の JSX が残っていないことの実証）と `react/jsx-runtime` を require することを検証する。
+  `dist/server/index.js` が `name` / `Config` / `apply` を export することを import で検証する。
+- I9: モジュール id `dsh-optimize`、`cordis.patch.yml` の `optimize`、`SECTION.id` の `optimize` を突き合わせる。
 
-`packages/siwc/src/settingsPersistence.test.ts` と同じ構成で、一時 profile を対象に検証する。
+### 設定の永続化（`src/settingsPersistence.test.ts`、実 Loader / Settings）
 
-- I10: `settings.describe()` に `optimize` が現れ、`applies: "live"` と全フィールドの `volatile` が確認できる。
-- I2, I10: `mutate` で1フィールドを書き、`describe` の revision が増え、profile の `cordis.patch.yml` に
-  `optimize` の `config` が現れる。再読込で値が復元される。
-- I6: 古い revision の書き込みが競合として拒否され、ファイルが変わらない。
-- I2: volatile でないフィールドへの書き込みが拒否される。
-- I9: Host エントリを無効化すると `describe` から `optimize` が消え、クライアント側の
-  `whileServed` が発火しない（タブが登録されない）。
+- I2/I10: `settings.describe()` に `optimize` が現れ、`applies: "live"`、`value` が `{ schemaVersion: 1 }`、
+  配信フォームのスキーマが `schemaVersion` だけであることを確認する。`mutate` で `schemaVersion` を書くと
+  revision が増え、profile の `cordis.patch.yml` に現れ、再起動後も復元される。
+- I6: 古い revision の書き込みが `SettingsConflictError` で拒否され、ファイルが変わらない。
+- I9: Host エントリを無効化すると `describe()` から `optimize` が消える。
 
 ## 手動確認
 
@@ -71,6 +83,7 @@
 2. Settings を開く。
 
 判定: ナビゲーションに `Optimization` がアイコン付きで1つ表示され、選択すると機能一覧が開く。
+機能が0件の間は、空であることを示す文言が出る。アイコンはシェル既定の glyph でよい。
 
 ### 2. トグルの即時反映と永続化
 
@@ -86,8 +99,9 @@ OFF に戻すと見た目が完全に元へ戻り、設定ファイルからキ�
 1. 全機能を OFF にする。
 2. DevTools で DOM を確認する。
 
-判定: 本プラグインの `<style data-plugin="dsh-optimize">` が存在しない。
+判定: 設定を閉じた状態で、本プラグインの `<style data-plugin="dsh-optimize">` が存在しない。
 スロットに本プラグイン由来の要素が無い。見た目と挙動が素の DSH と一致する。
+（設定ページを開いている間だけ、ページ自身がスタイル要素を描画する。）
 
 ### 4. 失敗隔離
 

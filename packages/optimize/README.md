@@ -5,8 +5,10 @@ across the Web GUI and host behaviour, each switched on or off individually in S
 
 ## Status
 
-Design stage: this package contains design documents only, and there is nothing to install yet.
-[docs/spec.md](docs/spec.md) owns the contract.
+Early implementation: the Host half, the client half, the `Optimization` settings page,
+and the feature registry/runtime scaffold are in place. The registry is empty, so the
+package currently adds the settings tab and no behaviour. Features are added one registry
+entry at a time; [docs/spec.md](docs/spec.md) owns the contract.
 
 ## Design documents
 

@@ -6,11 +6,14 @@
 
 - リポジトリの前提に従う: Node.js 22.19 以上、pnpm 11.22.0。
 - 動作確認済みの DSH バージョンは、ホスト側 `src/index.ts` の `EXPECTED_DSH_VERSIONS` に列挙する。
-  一覧は手元の DSH (`dsh --version`) と一致させる。
+  現在はワークスペースの型基準 `0.2.1-rc.2` と、手元の DSH Web GUI が動く `0.2.2-alpha.3` を入れてある。
+  手元の DSH (`dsh --version`) を変えたら一覧と `docs/architecture.md` の前提を更新する。
 - `package.json` の `peerDependencies` は `@deepseek-ai/dsh-*` を `^0.2.1-rc.2` のリテラルで持つ
   （`catalog:` 記法は使えない）。`engines.dsh` は宣言しない。
 - Host ランタイムが購読する `loader/volatile-update` の型宣言のため、`@deepseek-ai/cordis-plugin-loader` を
   devDependency に置き、型だけを import する。
+- テストは `node --import tsx --test` で実行する。ページを `.tsx` で書いているため、Node の型剥がしだけでは
+  テストから import できない。`tsx` はテスト実行のためだけの devDependency。
 - DSH はグローバルインストールされた CLI (`dsh`) と、profile ディレクトリ（既定 `$DSH_HOME/profiles/<name>`）を使う。
 
 ## コマンド
@@ -22,6 +25,9 @@ pnpm --filter dsh-optimize typecheck
 pnpm --filter dsh-optimize test
 pnpm --filter dsh-optimize build
 ```
+
+`build` は `vp pack` の後に `src/dist.check.ts` を実行し、Module Loader 契約と識別子の
+突き合わせ（`verification.md` の I8 / I9）まで確認する。
 
 全体の検査は CI と同じ順で実行する。
 
@@ -78,6 +84,8 @@ DSH 本体のチェックアウトで使う `pnpm run dev:web` は、本プラ�
    必要なら `reload: "restart"`）。設定スキーマはここから生成されるため、`config.ts` を手で編集しない。
 4. `src/page/copy.ts` に表示名と説明を英語で追加する（全 id 分が揃っていないとテストが落ちる）。
 5. `spec.md` の機能仕様に1小節追記する（作用する面と反映方式を含める）。
+6. テストを足す。差分と面の扱いは `src/diff.test.ts` / `src/hostRuntime.test.ts` / `src/clientRuntime.test.ts`、
+   ページの行・検索・書き込みは `src/settingsPage.test.ts` の合成 registry パターンに合わせる。
 
 ### 識別子の注意
 
@@ -95,13 +103,13 @@ DSH を更新したら、次の順で確認する。
 
 1. `EXPECTED_DSH_VERSIONS` に新しいバージョンを追加する。互換性が未確認なら追加しない。
 2. `@deepseek-ai/dsh` の型定義で、`architecture.md` の「依存する DSH の契約」表の各項目を確認する。
-   - `settings.section` / `settings.section.icon` の契約
+   - `settings.section` の契約（`settings.section.icon` は DSH 0.2.2 系で追加された。型基準を上げたら登録を検討する）
    - `ConfigForm` の `get` / `set` / `mutate` / `whileServed`
    - `loader/volatile-update` イベント（`@deepseek-ai/cordis-plugin-loader`）の有無と通知条件
    - `ctx.theme.overrideTokens` の有無と引数
-   - `@deepseek-ai/dsh-client-ui-primitives` の `Switch` とアイコンの export
-3. シェルのモジュール表に `@deepseek-ai/dsh-client-ui-primitives` が残っていることを、
-   配信される `dsh-web-frontend` のバンドルで確認する。
+   - `@deepseek-ai/dsh-client-ui-primitives` の `Switch` / `Input` / `Button` の export
+3. シェルの共有モジュール表に `react` / `react/jsx-runtime` / `@deepseek-ai/dsh-client-ui-primitives` が
+   残っていることを、配信される `dsh-web-frontend` のバンドルで確認する。
 4. CSS の対象化に使っている `data-slot` 名と `data-*` 属性が残っているか確認する。
 5. 手動確認（`verification.md`）を一通り実行する。
 
