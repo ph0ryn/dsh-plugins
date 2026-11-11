@@ -15,6 +15,8 @@ for (const [version, warns] of [
   ["0.2.1-rc.1", false],
   ["0.2.1-rc.2", false],
   ["0.2.1-rc.3", true],
+  ["0.2.2-alpha.2", false],
+  ["0.2.2-alpha.3", false],
   ["0.2.2-rc.1", true],
 ] as const) {
   test(`DSH compatibility check permits ${version}`, () => {
@@ -85,7 +87,7 @@ for (const [version, warns] of [
     assert.equal(output.provider, true);
     if (warns) {
       assert.deepEqual(output.warnings, [
-        `dsh-siwc expects DSH 0.2.1-alpha.2, 0.2.1-alpha.3, 0.2.1-alpha.4, 0.2.1-alpha.5, 0.2.1-rc.1, 0.2.1-rc.2; running ${version}. Compatibility is unverified; continuing.`,
+        `dsh-siwc expects DSH 0.2.1-alpha.2, 0.2.1-alpha.3, 0.2.1-alpha.4, 0.2.1-alpha.5, 0.2.1-rc.1, 0.2.1-rc.2, 0.2.2-alpha.2, 0.2.2-alpha.3; running ${version}. Compatibility is unverified; continuing.`,
       ]);
     } else {
       assert.deepEqual(output.warnings, []);

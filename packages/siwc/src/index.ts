@@ -44,6 +44,8 @@ const EXPECTED_DSH_VERSIONS = [
   "0.2.1-alpha.5",
   "0.2.1-rc.1",
   "0.2.1-rc.2",
+  "0.2.2-alpha.2",
+  "0.2.2-alpha.3",
 ];
 
 const label = (account: Account) =>
