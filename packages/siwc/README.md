@@ -28,8 +28,8 @@ If another plugin uses the `openai` route, disable that route first to avoid a c
 Clone the repository and install dependencies from its root:
 
 ```sh
-git clone https://github.com/ph0ryn/dsh-siwc.git
-cd dsh-siwc
+git clone https://github.com/ph0ryn/dsh-plugins.git
+cd dsh-plugins
 pnpm install --frozen-lockfile
 ```
 

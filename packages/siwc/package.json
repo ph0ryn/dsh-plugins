@@ -6,13 +6,13 @@
     "dsh",
     "deepseek-harness"
   ],
-  "homepage": "https://github.com/ph0ryn/dsh-siwc#readme",
+  "homepage": "https://github.com/ph0ryn/dsh-plugins#readme",
   "bugs": {
-    "url": "https://github.com/ph0ryn/dsh-siwc/issues"
+    "url": "https://github.com/ph0ryn/dsh-plugins/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ph0ryn/dsh-siwc.git"
+    "url": "git+https://github.com/ph0ryn/dsh-plugins.git"
   },
   "license": "MIT",
   "author": "ph0ryn",

@@ -4,7 +4,7 @@
   "description": "DeepSeek Harness plugins",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ph0ryn/dsh-siwc.git"
+    "url": "git+https://github.com/ph0ryn/dsh-plugins.git"
   },
   "license": "MIT",
   "author": "ph0ryn",
