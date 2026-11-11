@@ -6,7 +6,7 @@
     "dsh",
     "deepseek-harness"
   ],
-  "homepage": "https://github.com/ph0ryn/dsh-plugins#readme",
+  "homepage": "https://github.com/ph0ryn/dsh-plugins/tree/main/packages/optimizations#readme",
   "bugs": {
     "url": "https://github.com/ph0ryn/dsh-plugins/issues"
   },
