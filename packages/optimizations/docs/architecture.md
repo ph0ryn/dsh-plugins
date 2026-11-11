@@ -1,6 +1,6 @@
 # architecture — @ph0ryn/dsh-optimizations
 
-> この文書が答える問い: **どう設計されているか**。構造、データフロー、依存する DSH の契約、技術的制約を書く。要求そのものは `spec.md`、採用理由と代替案は `decisions.md` に置き、ここで重複させない。
+> この文書が答える問い: **どう設計されているか**。構造、データフロー、依存する DSH の契約、技術的制約を書く。要求そのものは `spec.md` に置き、ここで重複させない。
 
 ## 全体構成
 
@@ -40,6 +40,12 @@ Client は一覧と Client 機能の適用に使う。
 | `exports["./client"]` | Module Loader バンドル。無いとクライアント配信時に失敗する                                                                                                                         |
 
 Cordis のサービス注入は `src/client.ts` の `export const inject = [...]` で宣言する（上記とは別系統）。
+
+### バージョン要件
+
+`peerDependencies` に `@deepseek-ai/dsh-*` をリテラル（`^0.2.1-rc.2`）で並べ、`engines.dsh` は宣言しない。
+DSH の互換判定は `engines.dsh` があればそれだけで決まり、無ければ `@deepseek-ai/dsh*` の peer を
+prerelease 込みで判定する。`engines.dsh` の宣言は、検証していない将来の版を利用者の環境から締め出す。
 
 ### 識別子
 
@@ -85,7 +91,7 @@ packages/optimizations/
       <feature>.host.ts Host 機能の実装（cordis プラグイン）
     testing.ts         テスト用のダミー ctx / ConfigForm
   docs/
-    spec.md architecture.md verification.md development.md decisions.md
+    spec.md architecture.md verification.md development.md
 ```
 
 ## スロットの合成規則
@@ -145,7 +151,8 @@ export type FeatureId = (typeof FEATURES)[number]["id"];
 
 ## 機能の実装単位
 
-1機能 = 1つの cordis プラグイン。面ごとに独立して mount / dispose する。
+1機能 = 1つの cordis プラグイン。面ごとに独立して mount / dispose する。常時登録して設定値で
+無効化する方式は、OFF の機能もスロットとスタイルの登録を占有し続けるため使わない。
 
 ```ts
 export const messageTime: Plugin.Object = {
@@ -257,7 +264,8 @@ ctx.effect(() =>
 
 - `label` は静的文字列。`locale` を宣言しないため、locale 辞書の登録は不要（対応する辞書が無いと描画時に失敗する）。
 - アイコンはシェル既定の glyph（gear）に任せる。`settings.section.icon` は DSH 0.2.2 系のスロットで、
-  ワークスペースの型基準（0.2.1-rc.2）には存在しない。型基準を上げるまで登録しない（`decisions.md` D15）。
+  ワークスペースの型基準（0.2.1-rc.2）には存在しない。未宣言のスロットへの登録は実行時の例外になるため、
+  型基準を上げるまで登録しない。
 - `order: 25` は出荷セクション（account -10、general 0、models 10、plugins 15、agent-presets 20）の直後で、
   既存の並びに割り込まない。
 - ページの状態は `form.getSnapshot()` を `useSyncExternalStore` で購読する。書き込みは `form.set(id, boolean)`、
@@ -306,7 +314,6 @@ ctx.effect(() =>
 - `single` スロットの奪取（既存 UI の置き換え）。子スロットを持つ席では子 UI が消え、
   同じ `priority` の登録は例外になり、他プラグインと競合する。
 - DOM の直接改変や `MutationObserver` によるパッチ。React の再描画と衝突する。
-- 他プラグインの設定名前空間への書き込み、他パッケージのファイル改変。
 - 機能の効果をグローバルに常駐させること（OFF で消えない登録）。
 
 ## ライフサイクル

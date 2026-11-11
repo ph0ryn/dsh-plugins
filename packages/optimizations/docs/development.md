@@ -1,15 +1,15 @@
 # development — @ph0ryn/dsh-optimizations
 
-> この文書が答える問い: **開発・ビルド・ローカル導入・追随をどう行うか**。手順を書き、設計の理由は `decisions.md`、要求は `spec.md` を参照する。
+> この文書が答える問い: **開発・ビルド・ローカル導入・追随をどう行うか**。手順を書き、要求は `spec.md`、設計は `architecture.md` を参照する。
 
 ## 前提
 
 - リポジトリの前提に従う: Node.js 22.19 以上、pnpm 11.22.0。
 - 動作確認済みの DSH バージョンは、ホスト側 `src/index.ts` の `EXPECTED_DSH_VERSIONS` に列挙する。
   現在はワークスペースの型基準 `0.2.1-rc.2` と、手元の DSH Web GUI が動く `0.2.2-alpha.3` を入れてある。
-  手元の DSH (`dsh --version`) を変えたら一覧と `docs/architecture.md` の前提を更新する。
-- `package.json` の `peerDependencies` は `@deepseek-ai/dsh-*` を `^0.2.1-rc.2` のリテラルで持つ
-  （`catalog:` 記法は使えない）。`engines.dsh` は宣言しない。
+  手元の DSH (`dsh --version`) を変えたら一覧と `architecture.md` の型基準の記述を更新する。
+- `package.json` の `peerDependencies` は `@deepseek-ai/dsh-*` をリテラルで書く（`catalog:` 記法は使えない）。
+  値と `engines.dsh` を宣言しない理由は `architecture.md` の「バージョン要件」を参照する。
 - Host ランタイムが購読する `loader/volatile-update` の型宣言のため、`@deepseek-ai/cordis-plugin-loader` を
   devDependency に置き、型だけを import する。
 - テストは `node --import tsx --test` で実行する。ページを `.tsx` で書いているため、Node の型剥がしだけでは
@@ -102,7 +102,13 @@ DSH 本体のチェックアウトで使う `pnpm run dev:web` は、本プラ�
 3. `src/features.ts` の `FEATURES` に1エントリ追加する（`id`、`group`、`host` / `client` フラグ、
    必要なら `reload: "restart"`）。設定スキーマはここから生成されるため、`config.ts` を手で編集しない。
 4. `src/page/copy.ts` に表示名と説明を英語で追加する（全 id 分が揃っていないとテストが落ちる）。
-5. `spec.md` の機能仕様に1小節追記する（作用する面と反映方式を含める）。
+5. `spec.md` の機能仕様に1小節追記する。各小節は次の項目を持つ。
+   - 識別子: 設定キー（camelCase）、表示名、既定値（OFF 固定）
+   - 作用する面: `host` / `client` / 両方
+   - 反映方式: 即時 / 再起動
+   - 有効時の変化: 利用者が観測できる変化（見た目・操作・出力・振る舞い）
+   - 無効時の復元: 打ち消される副作用（スタイル、登録、購読、Host 側の提供）
+   - 前提と制約: 依存する DSH の契約、他機能・他プラグインとの排他
 6. テストを足す。差分と面の扱いは `src/diff.test.ts` / `src/hostRuntime.test.ts` / `src/clientRuntime.test.ts`、
    ページの行・検索・書き込みは `src/settingsPage.test.ts` の合成 registry パターンに合わせる。
 7. シェルの DOM を対象にする Client 機能は、`src/compactSidebar.test.ts` のようにスタイル文字列・

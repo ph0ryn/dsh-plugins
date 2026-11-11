@@ -21,14 +21,8 @@
 
 ## 自動テスト
 
-テストはパッケージ内で実行する。ページの `.tsx` を Node の型剥がしだけでは読み込めないため、
-`pnpm --filter @ph0ryn/dsh-optimizations test` はテスト実行時のみ `tsx` ローダーを使う。
-
-```sh
-pnpm --filter @ph0ryn/dsh-optimizations typecheck
-pnpm --filter @ph0ryn/dsh-optimizations test
-pnpm --filter @ph0ryn/dsh-optimizations build
-```
+型検査・テスト・ビルドの実行方法は `development.md` の「コマンド」に従う。以下は不変条件ごとに、
+どのテストが何を確かめるかである。
 
 ### レジストリ・スキーマ（`src/features.test.ts`）
 

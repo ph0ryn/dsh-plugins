@@ -53,4 +53,3 @@ pnpm build
 | [architecture.md](docs/architecture.md) | How is it designed?                                        |
 | [verification.md](docs/verification.md) | How do we know it works?                                   |
 | [development.md](docs/development.md)   | How do we build, install locally, and follow DSH upgrades? |
-| [decisions.md](docs/decisions.md)       | Why were these designs and trade-offs chosen?              |
