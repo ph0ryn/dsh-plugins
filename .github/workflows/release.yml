@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - "*-v*"
 
 permissions:
   contents: read
@@ -29,14 +29,23 @@ jobs:
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
 
-      - name: Verify tag matches package version
+      - name: Resolve package from tag
+        id: pkg
         run: |
           node --input-type=module <<'NODE'
           import assert from "node:assert/strict";
-          import { readFileSync } from "node:fs";
+          import { appendFileSync, readFileSync } from "node:fs";
 
-          const { version } = JSON.parse(readFileSync("package.json", "utf8"));
-          assert.equal(process.env.GITHUB_REF_NAME, `v${version}`, "Tag must match package.json version");
+          const tag = process.env.GITHUB_REF_NAME;
+          const match = /^(.+)-v(.+)$/.exec(tag);
+          assert.ok(match, `Tag must be <plugin>-v<version>: ${tag}`);
+          const [, plugin, tagVersion] = match;
+          const manifest = JSON.parse(readFileSync(`packages/${plugin}/package.json`, "utf8"));
+          assert.equal(tagVersion, manifest.version, "Tag must match the package version");
+          appendFileSync(
+            process.env.GITHUB_OUTPUT,
+            `name=${manifest.name}\nversion=${manifest.version}\n`,
+          );
           NODE
 
       - uses: pnpm/action-setup@v6
@@ -44,20 +53,22 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Validate package
+      - name: Validate
         run: |
-          pnpm run format:check
-          pnpm run lint
-          pnpm run typecheck
+          pnpm format:check
+          pnpm lint
+          pnpm typecheck
           pnpm test
 
       - name: Build and pack
-        run: pnpm pack --pack-destination artifacts
+        run: pnpm --filter "${{ steps.pkg.outputs.name }}" pack --pack-destination "$GITHUB_WORKSPACE/artifacts"
 
       - name: Publish to npm
+        env:
+          VERSION: ${{ steps.pkg.outputs.version }}
         run: |
           npm_tag=latest
-          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+          if [[ "$VERSION" == *-* ]]; then
             npm_tag=next
           fi
           pnpm publish ./artifacts/*.tgz --access public --tag "$npm_tag" --no-git-checks
@@ -65,9 +76,10 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.pkg.outputs.version }}
         run: |
           args=(--verify-tag --generate-notes)
-          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+          if [[ "$VERSION" == *-* ]]; then
             args+=(--prerelease)
           fi
           gh release create "$GITHUB_REF_NAME" ./artifacts/*.tgz "${args[@]}"
