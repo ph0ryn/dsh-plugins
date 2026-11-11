@@ -25,7 +25,7 @@ If another plugin uses the `openai` route, disable that route first to avoid a c
 
 ### From source
 
-Clone the repository and install dependencies:
+Clone the repository and install dependencies from its root:
 
 ```sh
 git clone https://github.com/ph0ryn/dsh-siwc.git
@@ -33,11 +33,11 @@ cd dsh-siwc
 pnpm install --frozen-lockfile
 ```
 
-Build a package and install it into your Web profile:
+Build this plugin and install it into your Web profile:
 
 ```sh
-pnpm pack
-dsh plugin --profile web add ./dsh-siwc-0.1.3.tgz --ignore-scripts
+pnpm --filter dsh-siwc pack --pack-destination ./artifacts
+dsh plugin --profile web add ./artifacts/dsh-siwc-0.1.3.tgz --ignore-scripts
 ```
 
 ## Use
