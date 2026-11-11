@@ -145,6 +145,7 @@ export function SettingsPageView({ form, features, copy, controls }: SettingsPag
               copy={copy[feature.id]}
               checked={values[feature.id] === true}
               disabled={disabled}
+              title={writable ? undefined : PAGE.readOnly}
               Switch={Switch}
               onChange={(next) => write(() => form.set(feature.id, next))}
             />

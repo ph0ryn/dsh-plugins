@@ -10,6 +10,8 @@ export interface FeatureRowProps {
   readonly copy: FeatureCopy;
   readonly checked: boolean;
   readonly disabled: boolean;
+  /** Hover hint, typically why the toggle is locked. */
+  readonly title?: string;
   /** Toggle control supplied by the page so tests can render without the shell bundle. */
   readonly Switch: ComponentType<ComponentProps<typeof Switch>>;
   onChange(next: boolean): void;
@@ -26,6 +28,7 @@ export function FeatureRow({
   copy,
   checked,
   disabled,
+  title,
   Switch,
   onChange,
 }: FeatureRowProps) {
@@ -46,7 +49,7 @@ export function FeatureRow({
         onChange={onChange}
         label={copy.name}
         disabled={disabled}
-        title={disabled ? PAGE.readOnly : undefined}
+        title={title}
       />
     </li>
   );

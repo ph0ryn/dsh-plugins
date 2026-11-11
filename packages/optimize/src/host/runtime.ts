@@ -48,6 +48,7 @@ export function startHostRuntime(
   };
 
   ctx.effect(() => {
+    previous = {};
     for (const feature of restart) {
       if (config[feature.id].get() === true) {
         fibers.set(feature.id, ctx.plugin(implementationFor(source.implementations, feature.id)));
