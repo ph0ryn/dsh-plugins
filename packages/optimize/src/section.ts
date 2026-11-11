@@ -10,5 +10,5 @@ export const SECTION = {
   name: "settings.section",
   id: "optimize",
   order: 25,
-  label: "Optimization",
+  label: "Optimizations",
 } as const;

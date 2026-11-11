@@ -213,3 +213,20 @@ glyph で満たされる。型基準を 0.2.2 系へ上げる作業は DSH 全�
 
 **影響**: 設定ナビゲーションのアイコンは他セクションの既定 glyph と同じ見た目になる。DSH の型基準を
 上げた時点で `settings.section.icon` の登録を追加できる。
+
+## D16 コンパクトサイドバーは既存コントロールの再配置 + More メニュー行で作る
+
+**決定**: `compactSidebar` は、シェルが描画した既存のブランドマーク・New Session・More・折りたたみを
+CSS で1行に再配置し、隠したパネル行を `sidebar.panellist.actions` に追加登録して既存 More メニューの
+先頭に移す。DOM の直接改変や `sidebar` single スロットの奪取はしない。
+
+**代替案**: `shell.overlay` に独自ヘッダーを作る、`sidebar` スロットを置き換える、独自ポップオーバーを実装する。
+
+**理由**: 独自ヘッダーはブランドや New Session の見た目・フォーカス・ショートカット・ラベルを複製することになり、
+シェル更新のたびに追従が必要になる。`sidebar` single スロットの奪取は `sidebar.workspaces` / `sidebar.settings`
+の seats を失う（D4 の禁止事項）。既存コントロールの再配置なら、シェルが所有する挙動をそのまま保てる。
+More メニューへの行追加は list slot の正規の追加で、メニュー表面・配置・閉じる挙動はシェルが所有する。
+
+**影響**: CSS は `[data-slot="sidebar"]` と要素の並び（ロゴ行 / New Session / nav / More アンカー）に依存するため、
+DSH のサイドバー DOM 変更で壊れ得る。追従手順は `development.md`、判定は `verification.md` の手動確認に置く。
+280px 幅ではブランド名（wordmark）を隠して1行に収める。More ボタンのアイコンはシェル既定のまま差し替えない。

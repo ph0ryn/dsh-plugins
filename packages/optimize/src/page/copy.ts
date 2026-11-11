@@ -11,11 +11,16 @@ export interface FeatureCopy {
  * Copy for every feature in `FEATURES`. The registry test fails when an id is
  * missing, so a feature cannot ship without its English name and description.
  */
-export const COPY: Readonly<Record<string, FeatureCopy>> = {};
+export const COPY: Readonly<Record<string, FeatureCopy>> = {
+  compactSidebar: {
+    name: "Compact sidebar",
+    description: "Move the sidebar navigation into a menu so workspaces get more room.",
+  },
+};
 
 /** Fixed page copy. */
 export const PAGE = {
-  title: "Optimization",
+  title: "Optimizations",
   description: "Enable or disable small improvements individually. Changes apply immediately.",
   searchPlaceholder: "Search features",
   enableAll: "Enable all",

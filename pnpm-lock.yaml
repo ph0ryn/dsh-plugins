@@ -33,6 +33,9 @@ catalogs:
     '@deepseek-ai/dsh-client-connection':
       specifier: ^0.2.1-rc.2
       version: 0.2.1-rc.2
+    '@deepseek-ai/dsh-client-ui-layout':
+      specifier: ^0.2.1-rc.2
+      version: 0.2.1-rc.5
     '@deepseek-ai/dsh-client-ui-primitives':
       specifier: ^0.2.1-rc.2
       version: 0.2.1-rc.5
@@ -42,6 +45,9 @@ catalogs:
     '@deepseek-ai/dsh-client-ui-settings':
       specifier: ^0.2.1-rc.2
       version: 0.2.1-rc.2
+    '@deepseek-ai/dsh-client-ui-sidebar':
+      specifier: ^0.2.1-rc.2
+      version: 0.2.1-rc.5
     '@deepseek-ai/dsh-client-ui-slots':
       specifier: ^0.2.1-rc.2
       version: 0.2.1-rc.2
@@ -165,6 +171,9 @@ importers:
       '@deepseek-ai/dsh-app-boot':
         specifier: 'catalog:'
         version: 0.2.1-rc.2(@deepseek-ai/cordis-plugin-group@1.0.5(@deepseek-ai/cordis-plugin-loader@1.0.6)(@deepseek-ai/cordis@4.0.5))(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6)(@deepseek-ai/cordis@4.0.5)(@deepseek-ai/dsh-home-paths@0.2.1-rc.2(@deepseek-ai/cordis@4.0.5))(@deepseek-ai/dsh-launch-environment@0.2.1-rc.2(@deepseek-ai/cordis@4.0.5))
+      '@deepseek-ai/dsh-client-ui-layout':
+        specifier: 'catalog:'
+        version: 0.2.1-rc.5(@deepseek-ai/cordis@4.0.5)
       '@deepseek-ai/dsh-client-ui-primitives':
         specifier: 'catalog:'
         version: 0.2.1-rc.5(@deepseek-ai/cordis@4.0.5)
@@ -174,6 +183,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-settings':
         specifier: 'catalog:'
         version: 0.2.1-rc.2(@deepseek-ai/cordis@4.0.5)
+      '@deepseek-ai/dsh-client-ui-sidebar':
+        specifier: 'catalog:'
+        version: 0.2.1-rc.5(@deepseek-ai/cordis@4.0.5)
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: 'catalog:'
         version: 0.2.1-rc.2(@deepseek-ai/cordis@4.0.5)
@@ -517,6 +529,11 @@ packages:
       '@deepseek-ai/cordis': ~4.0.5
       '@deepseek-ai/dsh-scope': 0.2.1-rc.2
 
+  '@deepseek-ai/dsh-client-ui-layout@0.2.1-rc.5':
+    resolution: {integrity: sha512-9NTZKbSb7b2cqbX+VzHxSItAym11wYODCzG9qsA7XvWH3k8EK7qNOBMQ8nJOwCcenOGAs8x7DQgPBXf9wHwBjQ==}
+    peerDependencies:
+      '@deepseek-ai/cordis': ~4.0.5
+
   '@deepseek-ai/dsh-client-ui-primitives@0.2.1-rc.5':
     resolution: {integrity: sha512-qSsRaEOURuFu4hDtPGcDO1bKiyPbFV68fvzm9Kxp9SG5c5SOzE4b6P33p1Hmml4nocXb7ktA6ay4jH3HEl1LQw==}
     peerDependencies:
@@ -529,6 +546,11 @@ packages:
 
   '@deepseek-ai/dsh-client-ui-settings@0.2.1-rc.2':
     resolution: {integrity: sha512-oU8f/0+DsdbgF0XhM+Po7W4PDJmTbhifQVwIoAcKfj29JN/4tLxKqIKS0IRcMbIGD39BGFITne78KIMgrGJy3Q==}
+    peerDependencies:
+      '@deepseek-ai/cordis': ~4.0.5
+
+  '@deepseek-ai/dsh-client-ui-sidebar@0.2.1-rc.5':
+    resolution: {integrity: sha512-GX7AK4OH+FBRW6JrVEZwU7JFzKEj5aM07vMF3fdpTh233mNSRBlyx/yKOc/ZPaj+FAYRVGzU7pejtYhxwJsrEg==}
     peerDependencies:
       '@deepseek-ai/cordis': ~4.0.5
 
@@ -2686,6 +2708,10 @@ snapshots:
       '@deepseek-ai/schemastery': 3.18.5
       zod: 4.4.3
 
+  '@deepseek-ai/dsh-client-ui-layout@0.2.1-rc.5(@deepseek-ai/cordis@4.0.5)':
+    dependencies:
+      '@deepseek-ai/cordis': 4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6)
+
   '@deepseek-ai/dsh-client-ui-primitives@0.2.1-rc.5(@deepseek-ai/cordis@4.0.5)':
     dependencies:
       '@deepseek-ai/cordis': 4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6)
@@ -2698,6 +2724,10 @@ snapshots:
     dependencies:
       '@deepseek-ai/cordis': 4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6)
       '@deepseek-ai/schemastery': 3.18.5
+
+  '@deepseek-ai/dsh-client-ui-sidebar@0.2.1-rc.5(@deepseek-ai/cordis@4.0.5)':
+    dependencies:
+      '@deepseek-ai/cordis': 4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6)
 
   '@deepseek-ai/dsh-client-ui-slots@0.2.1-rc.2(@deepseek-ai/cordis@4.0.5)':
     dependencies:

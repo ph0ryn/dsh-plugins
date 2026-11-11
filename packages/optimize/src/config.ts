@@ -6,9 +6,9 @@ import type { Volatile } from "@deepseek-ai/cordis";
 
 /**
  * Schema version of this plugin's settings document. Kept as a volatile field
- * so the namespace has at least one live field and therefore stays served
- * while `FEATURES` is empty: `settings.describe()` skips a namespace whose
- * form has no volatile field, which would hide the settings tab entirely.
+ * so the namespace always has at least one live field and stays served even
+ * if `FEATURES` becomes empty again: `settings.describe()` skips a namespace
+ * whose form has no volatile field, which would hide the settings tab.
  * The value is internal; the settings page never renders it.
  */
 const SCHEMA_VERSION = 1;

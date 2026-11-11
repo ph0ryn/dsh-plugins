@@ -6,9 +6,9 @@ across the Web GUI and host behaviour, each switched on or off individually in S
 ## Status
 
 Early implementation: the Host half, the client half, the `Optimization` settings page,
-and the feature registry/runtime scaffold are in place. The registry is empty, so the
-package currently adds the settings tab and no behaviour. Features are added one registry
-entry at a time; [docs/spec.md](docs/spec.md) owns the contract.
+and the feature registry/runtime are in place. The first feature, `Compact sidebar`,
+folds the sidebar navigation into its menu so workspaces get more room. Every feature stays
+OFF until enabled per profile; [docs/spec.md](docs/spec.md) owns the contract.
 
 ## Design documents
 

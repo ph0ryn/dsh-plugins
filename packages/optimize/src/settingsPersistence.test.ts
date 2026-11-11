@@ -86,12 +86,12 @@ test(
       const before = descriptor(ctx, "optimize");
       assert.equal(before.autoGenerate, false, "the custom page suppresses automatic schema UI");
       assert.equal(before.applies, "live");
-      assert.deepEqual(before.value, { schemaVersion: 1 });
-      // The serving marker is what keeps an empty feature registry visible:
+      assert.deepEqual(before.value, { schemaVersion: 1, compactSidebar: false });
+      // The serving marker keeps this namespace visible in every composition:
       // settings.describe() drops namespaces whose form has no volatile field.
       const schema = before.schema as { refs?: Record<string, { dict?: Record<string, unknown> }> };
       const root = Object.values(schema.refs ?? {}).find((node) => node.dict !== undefined);
-      assert.deepEqual(Object.keys(root?.dict ?? {}), ["schemaVersion"]);
+      assert.deepEqual(Object.keys(root?.dict ?? {}).sort(), ["compactSidebar", "schemaVersion"]);
 
       const optimizeEntry = entry(ctx, "optimize");
       const optimizeFiber = optimizeEntry.fiber;
@@ -104,7 +104,15 @@ test(
       );
       const saved = descriptor(ctx, "optimize");
       assert.ok(saved.revision > before.revision);
-      assert.deepEqual(saved.value, { schemaVersion: 2 });
+      assert.deepEqual(saved.value, { schemaVersion: 2, compactSidebar: false });
+      await ctx.settings.mutate(
+        "optimize",
+        [{ op: "set", path: ["compactSidebar"], value: true }],
+        saved.revision,
+      );
+      const toggled = descriptor(ctx, "optimize");
+      assert.deepEqual(toggled.value, { schemaVersion: 2, compactSidebar: true });
+      assert.equal(optimizeFiber!.config.compactSidebar.get(), true);
       assert.equal(
         entry(ctx, "optimize").fiber,
         optimizeFiber,
@@ -115,6 +123,7 @@ test(
       const durable = loadProfileDirectory("fixture", dir, profile.installAnchor);
       assert.deepEqual(durable.patches.find((row) => row.id === "optimize")?.config, {
         schemaVersion: 2,
+        compactSidebar: true,
       });
       const beforeConflict = await readFile(profile.patchPath, "utf8");
       await assert.rejects(
@@ -139,7 +148,10 @@ test(
         optimizeFiber,
         "the second boot must use fresh runtime instances",
       );
-      assert.deepEqual(descriptor(ctx, "optimize").value, { schemaVersion: 2 });
+      assert.deepEqual(descriptor(ctx, "optimize").value, {
+        schemaVersion: 2,
+        compactSidebar: true,
+      });
       assert.equal(descriptor(ctx, "optimize").autoGenerate, false);
 
       const active = entry(ctx, "optimize");

@@ -73,6 +73,6 @@ test("settings section identity is fixed", () => {
     name: "settings.section",
     id: "optimize",
     order: 25,
-    label: "Optimization",
+    label: "Optimizations",
   });
 });

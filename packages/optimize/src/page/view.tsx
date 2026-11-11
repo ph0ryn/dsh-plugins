@@ -30,7 +30,7 @@ export interface SettingsPageViewProps {
 }
 
 /**
- * The Optimization settings page: search, bulk operations, and one row per
+ * The Optimizations settings page: search, bulk operations, and one row per
  * feature. All state comes from the shared config form snapshot, so a failed
  * write re-renders the current Host value and the user can retry.
  */

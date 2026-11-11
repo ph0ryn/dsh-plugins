@@ -80,6 +80,7 @@ packages/optimize/
     features/
       host.ts          Host 機能の実装マップ
       client.ts        Client 機能の実装マップ
+      compactSidebar.tsx コンパクトサイドバー（CSS 再配置 + More メニュー行）
       <feature>.tsx    Client 機能の実装（cordis プラグイン）
       <feature>.host.ts Host 機能の実装（cordis プラグイン）
     testing.ts         テスト用のダミー ctx / ConfigForm
@@ -264,6 +265,22 @@ ctx.effect(() =>
 - 書き込みが拒否されたらスナップショットが自動で再読込されるため、画面は現在値に戻り、行内にエラーを出す。
 - スタイルは設定ページが開いている間だけ、ページが `style[data-plugin="dsh-optimize"]` を描画する。
   設定を閉じると React が要素を外すため、通常の画面にはプラグイン由来のスタイルが残らない。
+
+## コンパクトサイドバー（compactSidebar）
+
+既存コントロールを複製せず、シェルが描画した要素を CSS で1行に寄せる。
+
+- 対象は expanded のときだけ。サイドバー列に `container-type: inline-size` を置き、
+  `@container (min-width: 200px)` の中でのみ再配置する（56px のレールでは何もしない）。
+- 行の非表示は `[data-slot="sidebar"]` 配下の要素の並びで行う。CSS Modules のクラス名には依存しない。
+  - ロゴ行: ブランド名（`[data-slot="sidebar.brand.name"]`）を隠してマークだけにする。
+  - New Session: 既存ボタンを絶対配置でロゴ行に移す。
+  - パネル行: `nav > button`（3行）を隠し、More のアンカーだけをロゴ行右へ移す。
+  - Workspaces: 空いた分だけ自動で上に詰まる（`sidebar.workspaces` はそのまま）。
+- 隠したパネル行は `sidebar.panellist.actions` に自前の行を追加して、既存 More メニューの先頭に戻す。
+  行のアイコンとラベルは `ctx.slots.entries("sidebar.panellist")` から取得し、クリックで
+  `ctx.layout.selectPanel(id)`、メニューは `onDismiss()` で閉じる。
+- スタイルは機能 fiber の `ctx.effect` が出し入れする。機能 OFF / アンロードで完全に消える。
 
 ## 依存する DSH の契約
 

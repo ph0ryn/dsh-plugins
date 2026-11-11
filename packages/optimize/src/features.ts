@@ -24,9 +24,11 @@ export interface FeatureMeta {
 }
 
 /** Definitions kept const so `FeatureId` narrows as features are added. */
-const DEFINITIONS = [] as const satisfies readonly FeatureMeta[];
+const DEFINITIONS = [
+  { id: "compactSidebar", group: "sidebar", client: true },
+] as const satisfies readonly FeatureMeta[];
 
-/** Every known feature. Empty until feature work starts; order defines page order. */
+/** Every known feature; order defines settings page order. */
 export const FEATURES: readonly FeatureMeta[] = DEFINITIONS;
 
 export type FeatureId = (typeof DEFINITIONS)[number]["id"];

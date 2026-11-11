@@ -58,6 +58,15 @@ pnpm --filter dsh-optimize build
 - S5: `writable: false` で全トグルと一括操作が disabled になり、読み取り専用の注記が出る。
 - S6: 書き込み拒否で現在値が再表示され、`role="alert"` のエラーが出る。
 
+### コンパクトサイドバー（`src/compactSidebar.test.ts`）
+
+- I13: スタイル文字列が expanded 専用のコンテナクエリ、パネル行の非表示、既存ボタンの絶対配置、
+  ブランド名の非表示を含む。機能の apply がスタイル要素と `sidebar.panellist.actions` の行登録を
+  行い、後始末で両方が消える。
+- I14: `panelRows` が登録順・ラベル（文字列 / thunk / 未設定）を解決する。`SidebarNavRows` が全パネルを
+  アイコン付きで描画し、クリックで `selectPanel` と `onDismiss` を1回ずつ呼ぶ。現在のパネルに
+  `aria-current` が付く。
+
 ### ビルド成果物（`src/dist.check.ts`、`build` の一部）
 
 - I8: `dist/client/client.cjs` が `window.__ModuleLoader__.load({id:"dsh-optimize",factory:...` で始まり、
@@ -122,7 +131,19 @@ OFF に戻すと見た目が完全に元へ戻り、設定ファイルからキ�
 判定: ページを再読み込みせずに Host 側の効果が現れる。OFF に戻すと Host 側の提供（登録・購読）が消え、
 ログにエラーが残らない。
 
-### 7. 再起動反映の機能
+### 7. コンパクトサイドバー
+
+1. `compactSidebar` を ON にする。
+2. サイドバー上部が1行（ブランドマーク / New Session / More / 折りたたみ）になり、
+   Workspaces が上に広がることを確認する。
+3. More ボタンを押し、メニュー先頭に Plugins / Automation tasks / Context Insights などが
+   サイドバーと同じ順・同じアイコンで並ぶことを確認する。1行を選ぶとパネルが開き、メニューが閉じる。
+4. サイドバーを折りたたみ、レール表示が通常どおりであることを確認する。展開すると1行表示に戻る。
+5. OFF に戻し、ロゴ行・New Session 行・パネル行・余白が元に戻ることを確認する。
+
+判定: メニュー経由で全パネルに到達できる。折りたたみ中と OFF 時に余計なスタイルや行が残らない。
+
+### 8. 再起動反映の機能
 
 1. 「再起動が必要」と表示される機能を ON にする。
 2. ページを再読み込みし、次に DSH を再起動する。

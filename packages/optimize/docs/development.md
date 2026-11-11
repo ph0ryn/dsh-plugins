@@ -86,6 +86,8 @@ DSH 本体のチェックアウトで使う `pnpm run dev:web` は、本プラ�
 5. `spec.md` の機能仕様に1小節追記する（作用する面と反映方式を含める）。
 6. テストを足す。差分と面の扱いは `src/diff.test.ts` / `src/hostRuntime.test.ts` / `src/clientRuntime.test.ts`、
    ページの行・検索・書き込みは `src/settingsPage.test.ts` の合成 registry パターンに合わせる。
+7. シェルの DOM を対象にする Client 機能は、`src/compactSidebar.test.ts` のようにスタイル文字列・
+   スロット登録・後始末をテストし、見た目は `verification.md` の手動確認で補う。
 
 ### 識別子の注意
 
@@ -111,6 +113,10 @@ DSH を更新したら、次の順で確認する。
 3. シェルの共有モジュール表に `react` / `react/jsx-runtime` / `@deepseek-ai/dsh-client-ui-primitives` が
    残っていることを、配信される `dsh-web-frontend` のバンドルで確認する。
 4. CSS の対象化に使っている `data-slot` 名と `data-*` 属性が残っているか確認する。
+   `compactSidebar` はサイドバーの要素の並びに依存するため、次を確認する。
+   - `[data-slot="sidebar"]` 直下のロゴ行 / New Session ボタン / `nav`（パネル行 + More アンカー）の並び
+   - `[data-slot="sidebar.brand.name"]` と `[data-slot="sidebar.panellist"]` の存在
+   - More アンカーが `nav` の最後の子で、`aria-haspopup="menu"` を持つボタンであること
 5. 手動確認（`verification.md`）を一通り実行する。
 
 ## デバッグ
