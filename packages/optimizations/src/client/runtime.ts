@@ -3,8 +3,7 @@ import { FEATURES } from "../features.ts";
 import { CLIENT_IMPLEMENTATIONS } from "../features/client.ts";
 import { applyFeatureDiff, disposeFibers } from "../fiber.ts";
 
-import type { FeatureMeta } from "../features.ts";
-import type { FeatureImplementations } from "../fiber.ts";
+import type { FeatureRuntimeSource } from "../fiber.ts";
 import type { Context, Fiber } from "@deepseek-ai/cordis";
 
 /** The slice of a shared config form the runtime reads. */
@@ -13,13 +12,10 @@ export interface ClientRuntimeForm {
   subscribe(listener: () => void): () => void;
 }
 
-/** Registry and implementation map a Client runtime applies; tests inject synthetic ones. */
-export interface ClientRuntimeSource {
-  readonly features: readonly FeatureMeta[];
-  readonly implementations: FeatureImplementations;
-}
-
-const SOURCE: ClientRuntimeSource = { features: FEATURES, implementations: CLIENT_IMPLEMENTATIONS };
+const SOURCE: FeatureRuntimeSource = {
+  features: FEATURES,
+  implementations: CLIENT_IMPLEMENTATIONS,
+};
 
 /**
  * Apply Client-side toggles from the shared config form snapshot.
@@ -32,7 +28,7 @@ const SOURCE: ClientRuntimeSource = { features: FEATURES, implementations: CLIEN
 export function startClientRuntime(
   ctx: Context,
   form: ClientRuntimeForm,
-  source: ClientRuntimeSource = SOURCE,
+  source: FeatureRuntimeSource = SOURCE,
 ): void {
   const immediate = liveFeatures(source.features, "client");
   const fibers = new Map<string, Fiber>();

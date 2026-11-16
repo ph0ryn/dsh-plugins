@@ -1,3 +1,5 @@
+import { installStyleElement } from "./styleElement.ts";
+
 import type { Context, Plugin } from "@deepseek-ai/cordis";
 
 /**
@@ -27,19 +29,10 @@ export const MODEL_PICKER_GRID_STYLES = `
 [data-menu-group] [role="menuitemradio"] > span { min-width: 0; }
 `;
 
-function installStyles(): () => void {
-  const style = document.createElement("style");
-  style.dataset.plugin = "@ph0ryn/dsh-optimizations";
-  style.dataset.optimizationsFeature = "modelPickerGrid";
-  style.textContent = MODEL_PICKER_GRID_STYLES;
-  document.head.append(style);
-  return () => style.remove();
-}
-
 /** One client feature: lay the model picker list out in responsive equal columns. */
 export const modelPickerGrid: Plugin.Object = {
   name: "optimizations/model-picker-grid",
   apply(ctx: Context) {
-    ctx.effect(installStyles);
+    ctx.effect(() => installStyleElement("modelPickerGrid", MODEL_PICKER_GRID_STYLES));
   },
 };

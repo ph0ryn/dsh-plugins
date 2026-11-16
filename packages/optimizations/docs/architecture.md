@@ -87,11 +87,12 @@ packages/optimizations/
     features/
       host.ts          Host 機能の実装マップ
       client.ts        Client 機能の実装マップ
+      styleElement.ts  Client 機能が共有する style 要素の設置と後始末
       compactSidebar.tsx コンパクトサイドバー（CSS 再配置 + More メニュー行）
       modelPickerGrid.ts モデルピッカーのグリッド化（CSS のみ、スロット外のポップアップ対象化）
       <feature>.tsx    Client 機能の実装（cordis プラグイン）
       <feature>.host.ts Host 機能の実装（cordis プラグイン）
-    testing.ts         テスト用のダミー ctx / ConfigForm
+    testing.ts         テスト用のダミー ctx / ConfigForm / React・DOM ハーネス
   docs/
     spec.md architecture.md features.md verification.md development.md
 ```
@@ -167,6 +168,8 @@ export const messageTime: Plugin.Object = {
 ```
 
 - 副作用は必ず `ctx.effect` の中で登録する。fiber の dispose で自動的に解除される。
+- `<style>` を出す Client 機能は `installStyleElement(feature, css)` を `ctx.effect` から呼ぶ。
+  機能ごとに1要素で、fiber の dispose で消える（I5）。
 - 必要なサービスは `inject` で宣言する。サービスが無い構成では fiber が PENDING のまま留まり、何も壊さない。
 - 1機能の apply が投げた例外は cordis がその fiber を FAILED にし、ログに残す。他機能は影響を受けない。
 - 両面で実装する機能は、Host と Client で別々の fiber になる。片側の失敗はもう片側を止めない。

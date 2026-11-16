@@ -4,18 +4,11 @@ import { HOST_IMPLEMENTATIONS } from "../features/host.ts";
 import { applyFeatureDiff, disposeFibers, implementationFor } from "../fiber.ts";
 
 import type { Config } from "../config.ts";
-import type { FeatureMeta } from "../features.ts";
-import type { FeatureImplementations } from "../fiber.ts";
+import type { FeatureRuntimeSource } from "../fiber.ts";
 import type { Context, Fiber } from "@deepseek-ai/cordis";
 import type {} from "@deepseek-ai/cordis-plugin-loader";
 
-/** Registry and implementation map a Host runtime applies; tests inject synthetic ones. */
-export interface HostRuntimeSource {
-  readonly features: readonly FeatureMeta[];
-  readonly implementations: FeatureImplementations;
-}
-
-const SOURCE: HostRuntimeSource = { features: FEATURES, implementations: HOST_IMPLEMENTATIONS };
+const SOURCE: FeatureRuntimeSource = { features: FEATURES, implementations: HOST_IMPLEMENTATIONS };
 
 /**
  * Apply Host-side toggles.
@@ -28,7 +21,7 @@ const SOURCE: HostRuntimeSource = { features: FEATURES, implementations: HOST_IM
 export function startHostRuntime(
   ctx: Context,
   config: Config,
-  source: HostRuntimeSource = SOURCE,
+  source: FeatureRuntimeSource = SOURCE,
 ): void {
   const immediate = liveFeatures(source.features, "host");
   const restart = source.features.filter(

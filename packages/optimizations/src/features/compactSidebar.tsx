@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from "react";
 
+import { installStyleElement } from "./styleElement.ts";
+
 import type { Context, Plugin } from "@deepseek-ai/cordis";
 import type {} from "@deepseek-ai/dsh-client-ui-layout/client";
 import type {} from "@deepseek-ai/dsh-client-ui-renderer/client";
@@ -182,21 +184,12 @@ export function SidebarNavRows({ slots, layout, onDismiss }: SidebarNavRowsProps
   );
 }
 
-function installStyles(): () => void {
-  const style = document.createElement("style");
-  style.dataset.plugin = "@ph0ryn/dsh-optimizations";
-  style.dataset.optimizationsFeature = "compactSidebar";
-  style.textContent = COMPACT_SIDEBAR_STYLES;
-  document.head.append(style);
-  return () => style.remove();
-}
-
 /** One client feature: compact the sidebar header and fold its panel rows into the More menu. */
 export const compactSidebar: Plugin.Object = {
   name: "optimizations/compact-sidebar",
   inject: ["slots", "layout"],
   apply(ctx: Context) {
-    ctx.effect(installStyles);
+    ctx.effect(() => installStyleElement("compactSidebar", COMPACT_SIDEBAR_STYLES));
     ctx.effect(() =>
       ctx.slots.inject("sidebar.panellist.actions", () =>
         ctx.slots.register(

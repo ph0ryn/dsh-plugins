@@ -1,8 +1,15 @@
 import type { FeatureDiff } from "./diff.ts";
+import type { FeatureMeta } from "./features.ts";
 import type { Context, Fiber, Plugin } from "@deepseek-ai/cordis";
 
 /** One feature implementation per feature id, validated against the registry by tests. */
 export type FeatureImplementations = Readonly<Partial<Record<string, Plugin.Object>>>;
+
+/** Registry and implementation map a runtime applies; tests inject synthetic ones. */
+export interface FeatureRuntimeSource {
+  readonly features: readonly FeatureMeta[];
+  readonly implementations: FeatureImplementations;
+}
 
 /** Resolve one feature implementation or fail loudly on a registry/map mismatch. */
 export function implementationFor(
