@@ -22,4 +22,5 @@ export const styles = `
 .optimizations-feature-description{margin:0;color:var(--dsw-alias-label-tertiary)}
 .optimizations-note,.optimizations-empty,.optimizations-error{margin:0}
 .optimizations-error{color:var(--dsw-alias-label-primary)}
+.optimizations-feature-description a{color:inherit}
 `;

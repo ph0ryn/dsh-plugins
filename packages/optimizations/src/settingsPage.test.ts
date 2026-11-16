@@ -122,6 +122,22 @@ test("feature rows keep registry order and show side and restart facts", async (
   }
 });
 
+test("a credit is appended to the row description as one quiet link", async () => {
+  const fake = createFakeForm({ schemaVersion: 1, alpha: false });
+  const copy: Readonly<Record<string, FeatureCopy>> = {
+    ...COPY,
+    alpha: { ...COPY.alpha, credit: { name: "someone", url: "https://example.test/post" } },
+  };
+  const renderer = await renderReact(view(fake.form, undefined, copy));
+  try {
+    const anchor = renderer.root.findByProps({ href: "https://example.test/post" });
+    assert.equal(anchor.props.children, "someone");
+    assert.ok(textOf(renderer).includes("Inspired by"));
+  } finally {
+    renderer.unmount();
+  }
+});
+
 test("search narrows rows by name and description", async () => {
   const fake = createFakeForm({ schemaVersion: 1 });
   const renderer = await renderReact(view(fake.form));

@@ -5,6 +5,8 @@ export interface FeatureCopy {
   readonly name: string;
   /** One-sentence explanation of what enabling the feature changes. */
   readonly description: string;
+  /** Optional attribution appended to the description as one quiet link. */
+  readonly credit?: { readonly name: string; readonly url: string };
 }
 
 /**
@@ -19,6 +21,7 @@ export const COPY: Readonly<Record<string, FeatureCopy>> = {
   modelPickerGrid: {
     name: "Model picker grid",
     description: "Lay the model picker list out in equal columns that follow the window width.",
+    credit: { name: "nakasyou", url: "https://x.com/nakasyou0/status/2121598360608178628" },
   },
 };
 

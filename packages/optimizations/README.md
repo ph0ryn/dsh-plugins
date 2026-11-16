@@ -3,6 +3,13 @@
 Small improvements for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
 across the Web GUI and host behaviour, each switched on or off individually in Settings.
 
+## Features
+
+| Feature             | Description                                                                                                                                              |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Compact sidebar`   | Move the sidebar navigation into a menu so workspaces get more room.                                                                                     |
+| `Model picker grid` | Lay the model picker list out in equal columns that follow the window width. Inspired by [nakasyou](https://x.com/nakasyou0/status/2121598360608178628). |
+
 ## Status
 
 Early implementation: the Host half, the client half, the `Optimizations` settings page,

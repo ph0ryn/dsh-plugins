@@ -95,6 +95,8 @@ DSH 既存の挙動のまま。
 
 ### 前提と制約
 
+- 着想元: [nakasyou](https://github.com/nakasyou) が DeepSeek Harness 向けに実装した
+  [モデルピッカー](https://x.com/nakasyou0/status/2121598360608178628)。本機能の等幅グリッドの発想はこれによる。
 - ピッカーのポップアップはスロット木の外（`body` 直下）に描画され `data-slot` を持たないため、
   DSH が公開する ARIA ロールと `data-menu-*` 属性を CSS の対象化に使う。モデル名が入る列幅は
   内容優先ではなく等幅のため、最小列幅を超える名前は省略される。

@@ -42,7 +42,17 @@ export function FeatureRow({
             <span className="optimizations-feature-restart">{PAGE.restartRequired}</span>
           ) : null}
         </div>
-        <p className="optimizations-feature-description">{copy.description}</p>
+        <p className="optimizations-feature-description">
+          {copy.description}
+          {copy.credit ? (
+            <>
+              {" Inspired by "}
+              <a href={copy.credit.url} target="_blank" rel="noreferrer">
+                {copy.credit.name}
+              </a>
+            </>
+          ) : null}
+        </p>
       </div>
       <Switch
         checked={checked}
