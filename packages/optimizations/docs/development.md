@@ -119,8 +119,10 @@ DSH 本体のチェックアウトで使う `pnpm run dev:web` は、本プラ�
    - 前提と制約: 依存する DSH の契約、他機能・他プラグインとの排他
 6. テストを足す。差分と面の扱いは `src/diff.test.ts` / `src/hostRuntime.test.ts` / `src/clientRuntime.test.ts`、
    ページの行・検索・書き込みは `src/settingsPage.test.ts` の合成 registry パターンに合わせる。
+   描画は `src/testing.ts` の `renderReact` を使う。
 7. シェルの DOM を対象にする Client 機能は、`src/features/compactSidebar.test.ts` のように
    スタイル文字列・スロット登録・後始末をテストし、見た目は `features.md` の手動確認で補う。
+   スタイル要素の出し入れは `src/testing.ts` の `installFakeDocument` で検証する。
 
 ## DSH 更新時の追従
 

@@ -71,7 +71,7 @@ packages/optimizations/
     features.ts        機能レジストリ（Host/Client 共有の純データ）
     config.ts          features.ts から生成する設定スキーマと配信マーカー
     diff.ts            ON/OFF 差分の純関数（両ランタイム共有）
-    fiber.ts           機能 fiber の mount/dispose と実装解決
+    fiber.ts           機能 fiber の mount/dispose、実装解決、ランタイム source 型
     section.ts         settings.section 登録の固定値
     client.ts          Client half（locale 非依存）
     host/

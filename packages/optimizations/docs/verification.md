@@ -44,6 +44,7 @@
 - I12: `reload: "restart"` の機能は起動時のみ mount され、イベント発火では変化しないことを検証する。
 
 ランタイムには合成 registry と実装マップを渡して検証する（`src/testing.ts` のダミー ctx / ConfigForm）。
+ページ描画には同ファイルの `renderReact`、スタイル要素には `installFakeDocument` を使う。
 
 ### 設定ページ（`src/settingsPage.test.ts`、react-test-renderer）
 
