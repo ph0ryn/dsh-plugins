@@ -6,9 +6,10 @@ across the Web GUI and host behaviour, each switched on or off individually in S
 ## Status
 
 Early implementation: the Host half, the client half, the `Optimizations` settings page,
-and the feature registry/runtime are in place. The first feature, `Compact sidebar`,
-folds the sidebar navigation into its menu so workspaces get more room. Every feature stays
-OFF until enabled per profile; [docs/spec.md](docs/spec.md) owns the contract.
+and the feature registry/runtime are in place. `Compact sidebar` folds the sidebar navigation
+into its menu so workspaces get more room, and `Model picker grid` lays the model picker list
+out in equal columns that follow the window width. Every feature stays OFF until enabled per
+profile; [docs/spec.md](docs/spec.md) owns the contract.
 
 Verified against DSH 0.2.1-rc.2 and 0.2.2-alpha.3. Other versions only produce a startup warning.
 

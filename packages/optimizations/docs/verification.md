@@ -61,6 +61,13 @@
   アイコン付きで描画し、クリックで `selectPanel` と `onDismiss` を1回ずつ呼ぶ。現在のパネルに
   `aria-current` が付く。
 
+### モデルピッカーのグリッド化（`src/modelPickerGrid.test.ts`）
+
+- I15: スタイル文字列がピッカー幅（`min(660px, calc(100vw - 32px))`）、等幅の auto-fill グリッド、
+  見出し・スクロールアンカーの全幅化、列が縮めるための `min-width: 0` を含む。
+- I15: 対象化が ARIA ロール / `data-menu-*` 属性のみで、CSS Modules のハッシュクラスを含まない。
+- I5/I15: 機能の apply がプラグイン・機能名付きのスタイル要素を1つ出し、後始末で消す。
+
 ### ビルド成果物（`src/dist.check.ts`、`build` の一部）
 
 - I8: `dist/client/client.cjs` が `window.__ModuleLoader__.load({id:"@ph0ryn/dsh-optimizations",factory:...` で始まり、
@@ -70,8 +77,9 @@
 
 ### 設定の永続化（`src/settingsPersistence.test.ts`、実 Loader / Settings）
 
-- I2/I10: `settings.describe()` に `optimizations` が現れ、`applies: "live"`、`value` が `{ schemaVersion: 1 }`、
-  配信フォームのスキーマが `schemaVersion` だけであることを確認する。`mutate` で `schemaVersion` を書くと
+- I2/I10: `settings.describe()` に `optimizations` が現れ、`applies: "live"`、`value` が
+  `{ schemaVersion: 1 }` と全機能の既定 `false` から始まり、配信フォームのスキーマが
+  `schemaVersion` と全機能フィールドであることを確認する。`mutate` で `schemaVersion` を書くと
   revision が増え、profile の `cordis.patch.yml` に現れ、再起動後も復元される。
 - I6: 古い revision の書き込みが `SettingsConflictError` で拒否され、ファイルが変わらない。
 - I9: Host エントリを無効化すると `describe()` から `optimizations` が消える。
@@ -137,7 +145,20 @@ OFF に戻すと見た目が完全に元へ戻り、設定ファイルからキ�
 
 判定: メニュー経由で全パネルに到達できる。折りたたみ中と OFF 時に余計なスタイルや行が残らない。
 
-### 8. 再起動反映の機能
+### 8. モデルピッカーのグリッド化
+
+1. `modelPickerGrid` を ON にする。
+2. コンポーザのモデルピッカーを開く。
+
+判定: 一覧が等幅の複数列（標準的な幅で3列）になり、グループ見出しが全幅で各グループの上に付く。
+ウィンドウを狭めると列数が減り、極端に狭い幅では1列になる。長いモデル名は省略表示される。
+検索・選択ハイライト・キーボード操作は変わらないこと、選択のクリックが効くことを確認する。
+
+3. OFF に戻す。
+
+判定: ピッカーが既定の1列リストと既定幅に戻り、スタイル要素が残らない。
+
+### 9. 再起動反映の機能
 
 1. 「再起動が必要」と表示される機能を ON にする。
 2. ページを再読み込みし、次に DSH を再起動する。

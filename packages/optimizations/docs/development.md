@@ -99,7 +99,8 @@ DSH 本体のチェックアウトで使う `pnpm run dev:web` は、本プラ�
 ## 機能の追加手順
 
 1. 実装を書く。作用する面ごとに cordis プラグインを1つ用意する。
-   - Client 面: `src/features/<id>.tsx`。スロットへ追加する場合、`id` とキーには `optimizations-` 接頭辞を付ける。
+   - Client 面: `src/features/<id>.tsx`（JSX を使わないなら `<id>.ts`）。スロットへ追加する場合、
+     `id` とキーには `optimizations-` 接頭辞を付ける。
    - Host 面: `src/features/<id>.host.ts`。
    - `name` は `optimizations/<id>`。副作用は `ctx.effect` の中で登録し、戻り値の disposer で必ず解除する。
    - 必要なサービスは `inject` に列挙する。無い構成では PENDING で留まる前提で書く。
@@ -139,6 +140,10 @@ DSH を更新したら、次の順で確認する。
    - `[data-slot="sidebar"]` 直下のロゴ行 / New Session ボタン / `nav`（パネル行 + More アンカー）の並び
    - `[data-slot="sidebar.brand.name"]` と `[data-slot="sidebar.panellist"]` の存在
    - More アンカーが `nav` の最後の子で、`aria-haspopup="menu"` を持つボタンであること
+     `modelPickerGrid` はモデルピッカーのポップアップの属性に依存するため、次を確認する。
+   - ポップアップルートが `[role="group"][aria-label="Model and reasoning effort"]` であること
+   - 一覧が `[role="menu"][aria-label="Model"]` で、グループに `[data-menu-group]` /
+     `[data-menu-group-heading]` / `[data-menu-group-start]` と、行に `[role="menuitemradio"]` があること
 5. 手動確認（`verification.md`）を一通り実行する。
 
 ## 公開
