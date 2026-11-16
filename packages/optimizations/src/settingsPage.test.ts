@@ -2,16 +2,16 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { createElement } from "react";
-import { act, create } from "react-test-renderer";
+import { act } from "react-test-renderer";
 
 import { PAGE } from "./page/copy.ts";
 import { SettingsPageView } from "./page/view.tsx";
-import { createFakeForm } from "./testing.ts";
+import { createFakeForm, renderReact } from "./testing.ts";
 
 import type { FeatureMeta } from "./features.ts";
 import type { FeatureCopy } from "./page/copy.ts";
 import type { Button, Input, Switch } from "@deepseek-ai/dsh-client-ui-primitives";
-import type { ComponentProps, ReactElement } from "react";
+import type { ComponentProps } from "react";
 import type { ReactTestInstance, ReactTestRenderer } from "react-test-renderer";
 
 const FEATURES: readonly FeatureMeta[] = [
@@ -44,14 +44,6 @@ function StubInput({ onChange, ...rest }: InputProps) {
 
 function StubButton({ children, ...rest }: ButtonProps) {
   return createElement("button", rest, children);
-}
-
-async function render(element: ReactElement): Promise<ReactTestRenderer> {
-  let renderer: ReactTestRenderer | undefined;
-  await act(async () => {
-    renderer = create(element);
-  });
-  return renderer!;
 }
 
 async function settle(): Promise<void> {
@@ -89,7 +81,7 @@ function labeledButton(renderer: ReactTestRenderer, label: string): ReactTestIns
 
 test("an empty registry renders the empty state and disables bulk actions", async () => {
   const fake = createFakeForm({ schemaVersion: 1 });
-  const renderer = await render(view(fake.form, [], {}));
+  const renderer = await renderReact(view(fake.form, [], {}));
   try {
     const text = textOf(renderer);
     assert.ok(text.includes(PAGE.empty));
@@ -103,7 +95,7 @@ test("an empty registry renders the empty state and disables bulk actions", asyn
 
 test("feature rows keep registry order and show side and restart facts", async () => {
   const fake = createFakeForm({ schemaVersion: 1, alpha: false, beta: true, gamma: false });
-  const renderer = await render(view(fake.form));
+  const renderer = await renderReact(view(fake.form));
   try {
     const items = renderer.root.findAll(
       (node) => node.props["data-optimizations-feature"] !== undefined,
@@ -132,7 +124,7 @@ test("feature rows keep registry order and show side and restart facts", async (
 
 test("search narrows rows by name and description", async () => {
   const fake = createFakeForm({ schemaVersion: 1 });
-  const renderer = await render(view(fake.form));
+  const renderer = await renderReact(view(fake.form));
   try {
     const input = renderer.root.findAllByType(StubInput)[0];
     await act(async () => {
@@ -160,7 +152,7 @@ test("search narrows rows by name and description", async () => {
 
 test("one Switch writes exactly one field with form.set", async () => {
   const fake = createFakeForm({ schemaVersion: 1 });
-  const renderer = await render(view(fake.form));
+  const renderer = await renderReact(view(fake.form));
   try {
     await act(async () => {
       renderer.root.findAllByType(StubSwitch)[0].props.onChange(true);
@@ -175,7 +167,7 @@ test("one Switch writes exactly one field with form.set", async () => {
 
 test("bulk actions send one mutate each", async () => {
   const fake = createFakeForm({ schemaVersion: 1 });
-  const renderer = await render(view(fake.form));
+  const renderer = await renderReact(view(fake.form));
   try {
     await act(async () => {
       labeledButton(renderer, PAGE.enableAll).props.onClick();
@@ -207,7 +199,7 @@ test("bulk actions send one mutate each", async () => {
 
 test("a read-only document disables every control and explains why", async () => {
   const fake = createFakeForm({ schemaVersion: 1 }, { writable: false });
-  const renderer = await render(view(fake.form));
+  const renderer = await renderReact(view(fake.form));
   try {
     for (const node of renderer.root.findAllByType(StubSwitch)) {
       assert.equal(node.props.disabled, true);
@@ -221,7 +213,7 @@ test("a read-only document disables every control and explains why", async () =>
 
 test("a refused write keeps the current state and shows a retryable error", async () => {
   const fake = createFakeForm({ schemaVersion: 1 }, { accept: false });
-  const renderer = await render(view(fake.form));
+  const renderer = await renderReact(view(fake.form));
   try {
     await act(async () => {
       renderer.root.findAllByType(StubSwitch)[0].props.onChange(true);
@@ -238,7 +230,7 @@ test("a refused write keeps the current state and shows a retryable error", asyn
 
 test("a loading snapshot shows the loading note", async () => {
   const fake = createFakeForm(undefined, { status: "loading" });
-  const renderer = await render(view(fake.form));
+  const renderer = await renderReact(view(fake.form));
   try {
     assert.ok(textOf(renderer).includes(PAGE.loading));
   } finally {

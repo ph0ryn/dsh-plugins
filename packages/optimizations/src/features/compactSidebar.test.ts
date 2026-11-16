@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { createElement } from "react";
-import { act, create } from "react-test-renderer";
+import { act } from "react-test-renderer";
 
+import { createFakeEffects, installFakeDocument, renderReact } from "../testing.ts";
 import {
   COMPACT_SIDEBAR_STYLES,
   SidebarNavRows,
@@ -12,8 +13,6 @@ import {
 } from "./compactSidebar.tsx";
 
 import type { StoredEntry } from "@deepseek-ai/dsh-client-ui-slots";
-import type { ReactElement } from "react";
-import type { ReactTestRenderer } from "react-test-renderer";
 
 function storedEntry(
   id: string | undefined,
@@ -25,15 +24,6 @@ function storedEntry(
     component: icon ?? (() => null),
     options: { id, label, order },
   } as unknown as StoredEntry;
-}
-
-async function render(element: ReactElement): Promise<ReactTestRenderer> {
-  let renderer: ReactTestRenderer | undefined;
-  await act(async () => {
-    renderer = create(element);
-  });
-  assert.ok(renderer, "renderer was not created");
-  return renderer;
 }
 
 function fakeSidebar() {
@@ -96,7 +86,7 @@ test("SidebarNavRows renders every panel with its icon and selects it on click",
     ],
   };
   let dismissed = 0;
-  const renderer = await render(
+  const renderer = await renderReact(
     createElement(SidebarNavRows, {
       slots,
       layout: fake.layout,
@@ -135,7 +125,7 @@ test("the active panel row is announced with aria-current", async () => {
       storedEntry("automation", "Automation tasks", 20),
     ],
   };
-  const renderer = await render(
+  const renderer = await renderReact(
     createElement(SidebarNavRows, {
       slots,
       layout: fake.layout,
@@ -175,32 +165,12 @@ test("the feature moves the native controls with CSS instead of restyling them",
 });
 
 test("the plugin registers its menu rows and installs cleanup-owning styles", () => {
-  const head = {
-    appended: [] as unknown[],
-    append(node: unknown) {
-      head.appended.push(node);
-    },
-  };
-  const documentStub = {
-    createElement: () => ({
-      dataset: {} as Record<string, string>,
-      textContent: "",
-      remove() {},
-    }),
-    head,
-  };
-  const globals = globalThis as { document?: unknown };
-  const previousDocument = globals.document;
-  globals.document = documentStub;
-  const cleanups: (() => void)[] = [];
+  const doc = installFakeDocument();
+  const effects = createFakeEffects();
   const registered: { options: Record<string, unknown>; component: unknown }[] = [];
   const fake = fakeSidebar();
   const ctx = {
-    effect(effect: () => (() => void) | void) {
-      const cleanup = effect();
-      if (cleanup) cleanups.push(cleanup);
-      return () => cleanup?.();
-    },
+    effect: effects.effect,
     slots: {
       inject(_key: string, callback: () => () => void) {
         return callback();
@@ -214,16 +184,17 @@ test("the plugin registers its menu rows and installs cleanup-owning styles", ()
   };
   try {
     compactSidebar.apply(ctx as never, undefined);
-    assert.equal(head.appended.length, 1, "the feature injects one owned style element");
+    assert.equal(doc.head.appended.length, 1, "the feature injects one owned style element");
+    assert.equal(doc.created[0].dataset.plugin, "@ph0ryn/dsh-optimizations");
+    assert.equal(doc.created[0].dataset.optimizationsFeature, "compactSidebar");
     assert.equal(registered.length, 1);
     assert.equal(registered[0].options.name, "sidebar.panellist.actions");
     assert.equal(registered[0].options.id, "optimizations-sidebar-nav");
     assert.equal(registered[0].options.order, -100);
     assert.equal(registered[0].component, SidebarNavRows);
-    cleanups.forEach((cleanup) => cleanup());
-    assert.equal(head.appended.length, 1);
+    for (const cleanup of effects.cleanups) cleanup();
+    assert.deepEqual(doc.removed, doc.created, "cleanup removes the style element");
   } finally {
-    if (previousDocument === undefined) delete globals.document;
-    else globals.document = previousDocument;
+    doc.restore();
   }
 });

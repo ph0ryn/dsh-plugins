@@ -1,5 +1,31 @@
+import assert from "node:assert/strict";
+
+import { act, create } from "react-test-renderer";
+
 import type { Context, Plugin } from "@deepseek-ai/cordis";
 import type { ConfigForm } from "@deepseek-ai/dsh-client-ui-settings/client";
+import type { ReactElement } from "react";
+import type { ReactTestRenderer } from "react-test-renderer";
+
+/** Effects registered through a fake context, plus the method that records them. */
+export interface FakeEffects {
+  readonly cleanups: (() => void)[];
+  effect(effect: () => (() => void) | void): () => void;
+}
+
+/** Minimal `ctx.effect`: run the effect, remember its cleanup, return a disposer. */
+export function createFakeEffects(): FakeEffects {
+  const cleanups: (() => void)[] = [];
+  return {
+    cleanups,
+    effect(effect) {
+      const cleanup = effect();
+      const disposer = () => cleanup?.();
+      cleanups.push(disposer);
+      return disposer;
+    },
+  };
+}
 
 /** One fake cordis fiber created by the fake run context. */
 export interface FakeFiber {
@@ -22,16 +48,9 @@ export interface FakeRunContext {
 export function createFakeRunContext(): FakeRunContext {
   const fibers: FakeFiber[] = [];
   const listeners = new Set<(...args: unknown[]) => void>();
-  const cleanups: (() => void)[] = [];
+  const effects = createFakeEffects();
   const ctx = {
-    effect(effect: () => (() => void) | void) {
-      const cleanup = effect();
-      const disposer = () => {
-        cleanup?.();
-      };
-      cleanups.push(disposer);
-      return disposer;
-    },
+    effect: effects.effect,
     plugin(implementation: Plugin.Object) {
       const fiber: FakeFiber = {
         name: implementation.name,
@@ -58,7 +77,7 @@ export function createFakeRunContext(): FakeRunContext {
     },
     listenerCount: () => listeners.size,
     dispose() {
-      for (const cleanup of cleanups.splice(0)) cleanup();
+      for (const cleanup of effects.cleanups.splice(0)) cleanup();
     },
   };
 }
@@ -152,6 +171,74 @@ export function createFakeForm(
     setWritable(next) {
       writable = next;
       publish({ ...snapshot, writable });
+    },
+  };
+}
+
+/** Render a React element inside `act`; the page tests read the rendered tree. */
+export async function renderReact(element: ReactElement): Promise<ReactTestRenderer> {
+  let renderer: ReactTestRenderer | undefined;
+  await act(async () => {
+    renderer = create(element);
+  });
+  assert.ok(renderer, "renderer was not created");
+  return renderer;
+}
+
+/** One fake `<style>` element created through the fake document. */
+export interface FakeStyleElement {
+  readonly dataset: Record<string, string>;
+  textContent: string;
+  remove(): void;
+}
+
+export interface FakeDocumentHead {
+  readonly appended: FakeStyleElement[];
+  append(node: FakeStyleElement): void;
+}
+
+export interface FakeDocument {
+  readonly head: FakeDocumentHead;
+  readonly created: FakeStyleElement[];
+  readonly removed: FakeStyleElement[];
+  /** Put the previous `document` global back. */
+  restore(): void;
+}
+
+/** Install a fake `document` that records the style elements features create and remove. */
+export function installFakeDocument(): FakeDocument {
+  const created: FakeStyleElement[] = [];
+  const removed: FakeStyleElement[] = [];
+  const head: FakeDocumentHead = {
+    appended: [],
+    append(node) {
+      head.appended.push(node);
+    },
+  };
+  const documentStub = {
+    createElement() {
+      const element: FakeStyleElement = {
+        dataset: {},
+        textContent: "",
+        remove() {
+          removed.push(element);
+        },
+      };
+      created.push(element);
+      return element;
+    },
+    head,
+  };
+  const globals = globalThis as { document?: unknown };
+  const previous = globals.document;
+  globals.document = documentStub;
+  return {
+    head,
+    created,
+    removed,
+    restore() {
+      if (previous === undefined) delete globals.document;
+      else globals.document = previous;
     },
   };
 }

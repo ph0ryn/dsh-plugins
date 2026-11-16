@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { createFakeEffects, installFakeDocument } from "../testing.ts";
 import { MODEL_PICKER_GRID_STYLES, modelPickerGrid } from "./modelPickerGrid.ts";
 
 test("the picker popup gets a viewport-following width with room for columns", () => {
@@ -37,51 +38,19 @@ test("styles anchor on the picker's ARIA and data attributes, never on hashed cl
 });
 
 test("the plugin installs one owned style element and removes it on cleanup", () => {
-  const removed: unknown[] = [];
-  const created: { dataset: Record<string, string>; textContent: string; remove(): void }[] = [];
-  const head = {
-    appended: [] as unknown[],
-    append(node: unknown) {
-      head.appended.push(node);
-    },
-  };
-  const documentStub = {
-    createElement: () => {
-      const el = {
-        dataset: {} as Record<string, string>,
-        textContent: "",
-        remove() {
-          removed.push(el);
-        },
-      };
-      created.push(el);
-      return el;
-    },
-    head,
-  };
-  const globals = globalThis as { document?: unknown };
-  const previousDocument = globals.document;
-  globals.document = documentStub;
-  const cleanups: (() => void)[] = [];
-  const ctx = {
-    effect(effect: () => (() => void) | void) {
-      const cleanup = effect();
-      if (cleanup) cleanups.push(cleanup);
-      return () => cleanup?.();
-    },
-  };
+  const doc = installFakeDocument();
+  const effects = createFakeEffects();
   try {
-    modelPickerGrid.apply(ctx as never, undefined);
-    assert.equal(created.length, 1, "the feature injects one owned style element");
-    assert.equal(created[0].dataset.plugin, "@ph0ryn/dsh-optimizations");
-    assert.equal(created[0].dataset.optimizationsFeature, "modelPickerGrid");
-    assert.equal(created[0].textContent, MODEL_PICKER_GRID_STYLES);
-    assert.equal(head.appended.length, 1);
-    assert.deepEqual(removed, [], "nothing is removed before cleanup");
-    cleanups.forEach((cleanup) => cleanup());
-    assert.deepEqual(removed, created, "cleanup removes the style element");
+    modelPickerGrid.apply({ effect: effects.effect } as never, undefined);
+    assert.equal(doc.created.length, 1, "the feature injects one owned style element");
+    assert.equal(doc.created[0].dataset.plugin, "@ph0ryn/dsh-optimizations");
+    assert.equal(doc.created[0].dataset.optimizationsFeature, "modelPickerGrid");
+    assert.equal(doc.created[0].textContent, MODEL_PICKER_GRID_STYLES);
+    assert.equal(doc.head.appended.length, 1);
+    assert.deepEqual(doc.removed, [], "nothing is removed before cleanup");
+    for (const cleanup of effects.cleanups) cleanup();
+    assert.deepEqual(doc.removed, doc.created, "cleanup removes the style element");
   } finally {
-    if (previousDocument === undefined) delete globals.document;
-    else globals.document = previousDocument;
+    doc.restore();
   }
 });
