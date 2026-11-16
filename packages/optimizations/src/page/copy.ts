@@ -16,6 +16,10 @@ export const COPY: Readonly<Record<string, FeatureCopy>> = {
     name: "Compact sidebar",
     description: "Move the sidebar navigation into a menu so workspaces get more room.",
   },
+  modelPickerGrid: {
+    name: "Model picker grid",
+    description: "Lay the model picker list out in equal columns that follow the window width.",
+  },
 };
 
 /** Fixed page copy. */

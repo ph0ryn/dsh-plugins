@@ -88,12 +88,20 @@ test(
       const before = descriptor(ctx, "optimizations");
       assert.equal(before.autoGenerate, false, "the custom page suppresses automatic schema UI");
       assert.equal(before.applies, "live");
-      assert.deepEqual(before.value, { schemaVersion: 1, compactSidebar: false });
+      assert.deepEqual(before.value, {
+        schemaVersion: 1,
+        compactSidebar: false,
+        modelPickerGrid: false,
+      });
       // The serving marker keeps this namespace visible in every composition:
       // settings.describe() drops namespaces whose form has no volatile field.
       const schema = before.schema as { refs?: Record<string, { dict?: Record<string, unknown> }> };
       const root = Object.values(schema.refs ?? {}).find((node) => node.dict !== undefined);
-      assert.deepEqual(Object.keys(root?.dict ?? {}).sort(), ["compactSidebar", "schemaVersion"]);
+      assert.deepEqual(Object.keys(root?.dict ?? {}).sort(), [
+        "compactSidebar",
+        "modelPickerGrid",
+        "schemaVersion",
+      ]);
 
       const pluginEntry = entry(ctx, "optimizations");
       const fiber = pluginEntry.fiber;
@@ -106,14 +114,22 @@ test(
       );
       const saved = descriptor(ctx, "optimizations");
       assert.ok(saved.revision > before.revision);
-      assert.deepEqual(saved.value, { schemaVersion: 2, compactSidebar: false });
+      assert.deepEqual(saved.value, {
+        schemaVersion: 2,
+        compactSidebar: false,
+        modelPickerGrid: false,
+      });
       await ctx.settings.mutate(
         "optimizations",
         [{ op: "set", path: ["compactSidebar"], value: true }],
         saved.revision,
       );
       const toggled = descriptor(ctx, "optimizations");
-      assert.deepEqual(toggled.value, { schemaVersion: 2, compactSidebar: true });
+      assert.deepEqual(toggled.value, {
+        schemaVersion: 2,
+        compactSidebar: true,
+        modelPickerGrid: false,
+      });
       assert.equal(fiber!.config.compactSidebar.get(), true);
       assert.equal(
         entry(ctx, "optimizations").fiber,
@@ -153,6 +169,7 @@ test(
       assert.deepEqual(descriptor(ctx, "optimizations").value, {
         schemaVersion: 2,
         compactSidebar: true,
+        modelPickerGrid: false,
       });
       assert.equal(descriptor(ctx, "optimizations").autoGenerate, false);
 
