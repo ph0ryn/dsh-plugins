@@ -168,6 +168,7 @@ test("the plugin registers its menu rows and installs cleanup-owning styles", ()
   const doc = installFakeDocument();
   const effects = createFakeEffects();
   const registered: { options: Record<string, unknown>; component: unknown }[] = [];
+  let unregistered = 0;
   const fake = fakeSidebar();
   const ctx = {
     effect: effects.effect,
@@ -177,7 +178,9 @@ test("the plugin registers its menu rows and installs cleanup-owning styles", ()
       },
       register(options: Record<string, unknown>, component: unknown) {
         registered.push({ options, component });
-        return () => {};
+        return () => {
+          unregistered += 1;
+        };
       },
     },
     layout: fake.layout,
@@ -194,6 +197,7 @@ test("the plugin registers its menu rows and installs cleanup-owning styles", ()
     assert.equal(registered[0].component, SidebarNavRows);
     for (const cleanup of effects.cleanups) cleanup();
     assert.deepEqual(doc.removed, doc.created, "cleanup removes the style element");
+    assert.equal(unregistered, 1, "cleanup unregisters the menu rows");
   } finally {
     doc.restore();
   }

@@ -1,7 +1,5 @@
 import assert from "node:assert/strict";
 
-import { act, create } from "react-test-renderer";
-
 import type { Context, Plugin } from "@deepseek-ai/cordis";
 import type { ConfigForm } from "@deepseek-ai/dsh-client-ui-settings/client";
 import type { ReactElement } from "react";
@@ -175,8 +173,9 @@ export function createFakeForm(
   };
 }
 
-/** Render a React element inside `act`; the page tests read the rendered tree. */
+/** Render a React element inside `act`; the renderer loads lazily so Host-side tests never pull it in. */
 export async function renderReact(element: ReactElement): Promise<ReactTestRenderer> {
+  const { act, create } = await import("react-test-renderer");
   let renderer: ReactTestRenderer | undefined;
   await act(async () => {
     renderer = create(element);
