@@ -110,7 +110,7 @@ DSH 本体のチェックアウトで使う `pnpm run dev:web` は、本プラ�
 3. `src/features.ts` の `FEATURES` に1エントリ追加する（`id`、`group`、`host` / `client` フラグ、
    必要なら `reload: "restart"`）。設定スキーマはここから生成されるため、`config.ts` を手で編集しない。
 4. `src/page/copy.ts` に表示名と説明を英語で追加する（全 id 分が揃っていないとテストが落ちる）。
-5. `spec.md` の機能仕様に1小節追記する。各小節は次の項目を持つ。
+5. `features.md` に1小節追記する。各小節は次の項目を持つ。
    - 識別子: 設定キー（camelCase）、表示名、既定値（OFF 固定）
    - 作用する面: `host` / `client` / 両方
    - 反映方式: 即時 / 再起動
@@ -119,8 +119,8 @@ DSH 本体のチェックアウトで使う `pnpm run dev:web` は、本プラ�
    - 前提と制約: 依存する DSH の契約、他機能・他プラグインとの排他
 6. テストを足す。差分と面の扱いは `src/diff.test.ts` / `src/hostRuntime.test.ts` / `src/clientRuntime.test.ts`、
    ページの行・検索・書き込みは `src/settingsPage.test.ts` の合成 registry パターンに合わせる。
-7. シェルの DOM を対象にする Client 機能は、`src/compactSidebar.test.ts` のようにスタイル文字列・
-   スロット登録・後始末をテストし、見た目は `verification.md` の手動確認で補う。
+7. シェルの DOM を対象にする Client 機能は、`src/features/compactSidebar.test.ts` のように
+   スタイル文字列・スロット登録・後始末をテストし、見た目は `features.md` の手動確認で補う。
 
 ## DSH 更新時の追従
 
@@ -136,14 +136,7 @@ DSH を更新したら、次の順で確認する。
 3. シェルの共有モジュール表に `react` / `react/jsx-runtime` / `@deepseek-ai/dsh-client-ui-primitives` が
    残っていることを、配信される `dsh-web-frontend` のバンドルで確認する。
 4. CSS の対象化に使っている `data-slot` 名と `data-*` 属性が残っているか確認する。
-   `compactSidebar` はサイドバーの要素の並びに依存するため、次を確認する。
-   - `[data-slot="sidebar"]` 直下のロゴ行 / New Session ボタン / `nav`（パネル行 + More アンカー）の並び
-   - `[data-slot="sidebar.brand.name"]` と `[data-slot="sidebar.panellist"]` の存在
-   - More アンカーが `nav` の最後の子で、`aria-haspopup="menu"` を持つボタンであること
-     `modelPickerGrid` はモデルピッカーのポップアップの属性に依存するため、次を確認する。
-   - ポップアップルートが `[role="group"][aria-label="Model and reasoning effort"]` であること
-   - 一覧が `[role="menu"][aria-label="Model"]` で、グループに `[data-menu-group]` /
-     `[data-menu-group-heading]` / `[data-menu-group-start]` と、行に `[role="menuitemradio"]` があること
+   機能ごとの確認箇所は `features.md` の各機能の節を参照する。
 5. 手動確認（`verification.md`）を一通り実行する。
 
 ## 公開

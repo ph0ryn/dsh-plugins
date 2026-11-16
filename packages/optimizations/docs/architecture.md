@@ -93,7 +93,7 @@ packages/optimizations/
       <feature>.host.ts Host 機能の実装（cordis プラグイン）
     testing.ts         テスト用のダミー ctx / ConfigForm
   docs/
-    spec.md architecture.md verification.md development.md
+    spec.md architecture.md features.md verification.md development.md
 ```
 
 ## スロットの合成規則
@@ -276,58 +276,27 @@ ctx.effect(() =>
 - スタイルは設定ページが開いている間だけ、ページが `style[data-plugin="@ph0ryn/dsh-optimizations"]` を描画する。
   設定を閉じると React が要素を外すため、通常の画面にはプラグイン由来のスタイルが残らない。
 
-## コンパクトサイドバー（compactSidebar）
+## 機能ごとの実装
 
-既存コントロールを複製せず、シェルが描画した要素を CSS で1行に寄せる。
-
-- 対象は expanded のときだけ。サイドバー列に `container-type: inline-size` を置き、
-  `@container (min-width: 200px)` の中でのみ再配置する（56px のレールでは何もしない）。
-- 行の非表示は `[data-slot="sidebar"]` 配下の要素の並びで行う。CSS Modules のクラス名には依存しない。
-  - ロゴ行: ブランド名（`[data-slot="sidebar.brand.name"]`）を隠してマークだけにする。
-  - New Session: 既存ボタンを絶対配置でロゴ行に移す。
-  - パネル行: `nav > button`（3行）を隠し、More のアンカーだけをロゴ行右へ移す。
-  - Workspaces: 空いた分だけ自動で上に詰まる（`sidebar.workspaces` はそのまま）。
-- 隠したパネル行は `sidebar.panellist.actions` に自前の行を追加して、既存 More メニューの先頭に戻す。
-  行のアイコンとラベルは `ctx.slots.entries("sidebar.panellist")` から取得し、クリックで
-  `ctx.layout.selectPanel(id)`、メニューは `onDismiss()` で閉じる。
-- スタイルは機能 fiber の `ctx.effect` が出し入れする。機能 OFF / アンロードで完全に消える。
-
-## モデルピッカーのグリッド化（modelPickerGrid）
-
-検索・グループ化・選択ハイライトは DSH 側の実装のまま、一覧の並びだけを CSS で変える。
-
-- ピッカーのポップアップはスロット木の外（`body` 直下）に描画されるため `data-slot` を持たない。
-  対象化の起点は DSH が公開するセマンティック属性にする: ルート
-  `[role="group"][aria-label="Model and reasoning effort"]`、一覧
-  `[role="menu"][aria-label="Model"]`、グループ `[data-menu-group]`、見出し
-  `[data-menu-group-heading]`、行 `[role="menuitemradio"]`。CSS Modules のハッシュクラスには依存しない。
-- 各グループを `repeat(auto-fill, minmax(min(164px, 100%), 1fr))` の等幅グリッドにし、
-  見出しとスクロールアンカー（`[data-menu-group-start]`）を `grid-column: 1 / -1` で全幅にする。
-  列数はピッカー幅に応じ 3 → 2 → 1 と連続的に減る。
-- ルートの幅を `min(660px, calc(100vw - 32px))` に広げる。行とそのコピー span に `min-width: 0`
-  を置いて列が内容より細くなれるようにし、長いモデル名は DSH 既存の省略表示に任せる。
-- DOM 構造（検索入力・`role="menuitemradio"` の順序・選択状態）は変わらないため、キーボード操作と
-  スクリーンリーダーの読み順が保たれる。
-- スタイルは機能 fiber の `ctx.effect` が出し入れする。機能 OFF / アンロードで完全に消える。
+個々の機能の CSS 対象化の起点、依存する DOM 構造、実装上の制約は `features.md` の各機能の節を参照する。
 
 ## 依存する DSH の契約
 
 利用してよいのは以下に限る。バージョン差の影響を受けるため、追加時は `development.md` の追従手順に従う。
 
-| 契約                                                     | 用途                                                                           |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `settings.section`（list slot）                          | 設定タブの登録                                                                 |
-| `settings.section.icon`（list slot、DSH ≥ 0.2.2）        | ナビゲーションアイコン（現行の型基準では未使用）                               |
-| `ctx.configForms.get` / `set` / `mutate` / `whileServed` | 設定値の読み書き、配信状況の監視                                               |
-| `ctx.slots.inject` / `ctx.slots.register`                | スロットへの寄与                                                               |
-| `ctx.plugin` と `Fiber.dispose`                          | 機能のマウント・アンマウント（両面）                                           |
-| `loader/volatile-update` イベント                        | Host 側のトグル反映（所有 fiber に配送される）                                 |
-| `ctx.theme.overrideTokens`                               | 色・トークンの上書き（戻り値の disposer で解除）                               |
-| `data-slot="<slot 名>"` 属性                             | 既存 UI を CSS で対象化する際の起点                                            |
-| モデルピッカーの ARIA ロール / `data-menu-*` 属性        | モデルピッカーのポップアップの CSS 対象化（スロット外のため `data-slot` 無し） |
-| シェルが公開する `data-*` 属性                           | 状態に応じた CSS の条件付け                                                    |
-| `--dsw-*` / `--dsh-*` CSS 変数                           | 見た目の調整                                                                   |
-| `@deepseek-ai/dsh-client-ui-primitives`                  | `Switch` / `Input` / `Button`（シェルの `PLATFORM_MODULES` 経由で require）    |
+| 契約                                                     | 用途                                                                        |
+| -------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `settings.section`（list slot）                          | 設定タブの登録                                                              |
+| `settings.section.icon`（list slot、DSH ≥ 0.2.2）        | ナビゲーションアイコン（現行の型基準では未使用）                            |
+| `ctx.configForms.get` / `set` / `mutate` / `whileServed` | 設定値の読み書き、配信状況の監視                                            |
+| `ctx.slots.inject` / `ctx.slots.register`                | スロットへの寄与                                                            |
+| `ctx.plugin` と `Fiber.dispose`                          | 機能のマウント・アンマウント（両面）                                        |
+| `loader/volatile-update` イベント                        | Host 側のトグル反映（所有 fiber に配送される）                              |
+| `ctx.theme.overrideTokens`                               | 色・トークンの上書き（戻り値の disposer で解除）                            |
+| `data-slot="<slot 名>"` 属性                             | 既存 UI を CSS で対象化する際の起点                                         |
+| シェルが公開する `data-*` 属性                           | 状態に応じた CSS の条件付け                                                 |
+| `--dsw-*` / `--dsh-*` CSS 変数                           | 見た目の調整                                                                |
+| `@deepseek-ai/dsh-client-ui-primitives`                  | `Switch` / `Input` / `Button`（シェルの `PLATFORM_MODULES` 経由で require） |
 
 ### 禁止事項
 
