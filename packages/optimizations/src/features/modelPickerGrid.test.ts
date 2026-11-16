@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { MODEL_PICKER_GRID_STYLES, modelPickerGrid } from "./features/modelPickerGrid.ts";
+import { MODEL_PICKER_GRID_STYLES, modelPickerGrid } from "./modelPickerGrid.ts";
 
 test("the picker popup gets a viewport-following width with room for columns", () => {
   assert.match(MODEL_PICKER_GRID_STYLES, /width: min\(660px, calc\(100vw - 32px\)\) !important;/);

@@ -34,7 +34,7 @@
   "scripts": {
     "build": "vp pack && node src/dist.check.ts",
     "prepack": "pnpm run build && clean-pkg-json --keep dsh",
-    "test": "node --import tsx --test src/*.test.ts",
+    "test": "node --import tsx --test src/*.test.ts src/features/*.test.ts",
     "typecheck": "tsc -p tsconfig.json"
   },
   "devDependencies": {

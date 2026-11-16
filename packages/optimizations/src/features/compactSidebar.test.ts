@@ -9,7 +9,7 @@ import {
   SidebarNavRows,
   compactSidebar,
   panelRows,
-} from "./features/compactSidebar.tsx";
+} from "./compactSidebar.tsx";
 
 import type { StoredEntry } from "@deepseek-ai/dsh-client-ui-slots";
 import type { ReactElement } from "react";
