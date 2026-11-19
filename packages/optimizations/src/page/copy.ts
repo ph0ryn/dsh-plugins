@@ -23,6 +23,10 @@ export const COPY: Readonly<Record<string, FeatureCopy>> = {
     description: "Lay the model picker list out in equal columns that follow the window width.",
     credit: { name: "nakasyou", url: "https://x.com/nakasyou0/status/2121598360608178628" },
   },
+  continueSession: {
+    name: "Continue session",
+    description: "Replace the disabled Send button with Continue when a turn ended abnormally.",
+  },
 };
 
 /** Fixed page copy. */

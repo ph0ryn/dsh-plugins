@@ -8,6 +8,7 @@ across the Web GUI and host behaviour, each switched on or off individually in S
 | Feature             | Description                                                                                                                                              |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Compact sidebar`   | Move the sidebar navigation into a menu so workspaces get more room.                                                                                     |
+| `Continue session`  | Show a one-click Continue instead of the disabled Send when a turn ended abnormally.                                                                     |
 | `Model picker grid` | Lay the model picker list out in equal columns that follow the window width. Inspired by [nakasyou](https://x.com/nakasyou0/status/2121598360608178628). |
 
 ## Status

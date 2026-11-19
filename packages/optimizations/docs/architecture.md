@@ -89,6 +89,7 @@ packages/optimizations/
       client.ts        Client 機能の実装マップ
       styleElement.ts  Client 機能が共有する style 要素の設置と後始末
       compactSidebar.tsx コンパクトサイドバー（CSS 再配置 + More メニュー行）
+      continueSession.tsx 異常終了セッションの Continue ボタン（イベント窓 + コンポーザ行）
       modelPickerGrid.ts モデルピッカーのグリッド化（CSS のみ、スロット外のポップアップ対象化）
       <feature>.tsx    Client 機能の実装（cordis プラグイン）
       <feature>.host.ts Host 機能の実装（cordis プラグイン）
@@ -293,10 +294,14 @@ ctx.effect(() =>
 | `settings.section.icon`（list slot、DSH ≥ 0.2.2）        | ナビゲーションアイコン（現行の型基準では未使用）                            |
 | `ctx.configForms.get` / `set` / `mutate` / `whileServed` | 設定値の読み書き、配信状況の監視                                            |
 | `ctx.slots.inject` / `ctx.slots.register`                | スロットへの寄与                                                            |
+| `conversation.input.right`（list slot）                  | コンポーザの送信直前の行に Continue ボタンを追加                            |
+| `ctx.sessions.binding` / `SessionBinding.eventSource`    | 直近の `turn/end.reason` をクライアントだけで読む                           |
+| `useSession` / `useInput` / `inputActions`               | 実行中・空入力の判定と `continue` の送信                                    |
 | `ctx.plugin` と `Fiber.dispose`                          | 機能のマウント・アンマウント（両面）                                        |
 | `loader/volatile-update` イベント                        | Host 側のトグル反映（所有 fiber に配送される）                              |
 | `ctx.theme.overrideTokens`                               | 色・トークンの上書き（戻り値の disposer で解除）                            |
 | `data-slot="<slot 名>"` 属性                             | 既存 UI を CSS で対象化する際の起点                                         |
+| `data-composer-card` 属性                                | コンポーザ内の無効 Send を自前ボタン表示時に隠す起点                        |
 | シェルが公開する `data-*` 属性                           | 状態に応じた CSS の条件付け                                                 |
 | `--dsw-*` / `--dsh-*` CSS 変数                           | 見た目の調整                                                                |
 | `@deepseek-ai/dsh-client-ui-primitives`                  | `Switch` / `Input` / `Button`（シェルの `PLATFORM_MODULES` 経由で require） |

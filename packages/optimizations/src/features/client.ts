@@ -1,4 +1,5 @@
 import { compactSidebar } from "./compactSidebar.tsx";
+import { continueSession } from "./continueSession.tsx";
 import { modelPickerGrid } from "./modelPickerGrid.ts";
 
 import type { FeatureImplementations } from "../fiber.ts";
@@ -10,5 +11,6 @@ import type { FeatureImplementations } from "../fiber.ts";
  */
 export const CLIENT_IMPLEMENTATIONS: FeatureImplementations = {
   compactSidebar,
+  continueSession,
   modelPickerGrid,
 };

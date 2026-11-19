@@ -76,6 +76,57 @@
 
 判定: メニュー経由で全パネルに到達できる。折りたたみ中と OFF 時に余計なスタイルや行が残らない。
 
+## continueSession — Continue session
+
+- **識別子**: `continueSession`、表示名 `Continue session`、既定値 OFF
+- **作用する面**: `client`
+- **反映方式**: 即時
+
+### 有効時の変化
+
+直近の `turn/end` が `aborted` / `blocked` / `error` / `max-tokens` / `interrupted` で終わり、
+セッションが非実行中で入力欄と添付が空のとき、コンポーザの無効な Send ボタンの代わりに
+Send と同じ見た目のプライマリーボタン（`aria-label` は `Continue`）が現れる。
+押すと入力欄に `continue` を入れて通常の送信を行う。
+DSH 自身が max-tokens 表示で案内する文言と同じで、新しいユーザーメッセージとして1ターンを開始する。
+
+### 無効時の復元
+
+スロット登録とスタイル要素が消え、Send ボタンは DSH 既定のままになる。
+
+### 前提と制約
+
+- `conversation.input.right`（list、scope=`session`）へ `optimizations-` 付き id で追加する。
+  Send ボタン自身を包むスロットは無いため、無効な Send は CSS で隠す。
+  DSH が送ボタンに安定した `data-*` を出していないため、セレクタはコンポーザの
+  `data-composer-card` と自前の `data-optimizations-continue` を使う（ハッシュ class と
+  ローカライズされた `aria-label` には依存しない）。
+- 終了理由は `ctx.sessions.binding(sessionId).eventSource` の末尾から `turn/end` を探して読む。
+  DSH のチャット UI と同じ経路で、Host 側の変更や独自 RPC は使わない。
+- `completed` / `forked` や実行中・入力済みのセッションには出さない。
+- 押すたびに durable な `user/message` が1件増える（DSH の通常の送信と同じ）。
+  Goal が armed の場合は DSH 側も自動継続し得る。
+
+### 実装上の構造
+
+- `lastTurnEndKind` がイベント窓の末尾から理由を読み、`shouldShowContinue` が表示条件を判定する純関数。
+- `ContinueButton` は `useSyncExternalStore` でイベント窓を購読し、条件を満たすときだけボタンを描画する。
+- クリックは `inputActions.setDraft("continue")` と `inputActions.submit()` だけ。
+
+### 検証
+
+自動テスト: `src/features/continueSession.test.ts` が理由判定・表示条件・クリック・登録と後始末を確かめる。
+
+手動確認:
+
+1. `continueSession` を ON にする。
+2. ユーザーが停止したセッション（または max-tokens で終わったセッション）を開き、入力を空にする。
+3. `Continue` が表示され、押すと `continue` が送信されて新しいターンが始まることを確認する。
+4. 完了したセッション・実行中のセッション・入力中のセッションでは表示されないことを確認する。
+5. OFF に戻し、スタイルとボタンが消えることを確認する。
+
+判定: 異常終了セッションだけに Continue が出て、押下が通常の送信として記録される。
+
 ## modelPickerGrid — Model picker grid
 
 - **識別子**: `modelPickerGrid`、表示名 `Model picker grid`、既定値 OFF

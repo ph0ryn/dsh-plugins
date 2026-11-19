@@ -132,6 +132,9 @@ DSH を更新したら、次の順で確認する。
 2. `@deepseek-ai/dsh` の型定義で、`architecture.md` の「依存する DSH の契約」表の各項目を確認する。
    - `settings.section` の契約（`settings.section.icon` は DSH 0.2.2 系で追加された。型基準を上げたら登録を検討する）
    - `ConfigForm` の `get` / `set` / `mutate` / `whileServed`
+   - `conversation.input.right` の slot 宣言と、`useSession` / `useInput` / `inputActions` の標準 props
+   - `ctx.sessions.binding` と `SessionBinding.eventSource` のイベント窓（`turn/end` の理由）
+   - `data-composer-card` と Send ボタンの DOM 構造（Continue 表示時に隠す CSS の起点）
    - `loader/volatile-update` イベント（`@deepseek-ai/cordis-plugin-loader`）の有無と通知条件
    - `ctx.theme.overrideTokens` の有無と引数
    - `@deepseek-ai/dsh-client-ui-primitives` の `Switch` / `Input` / `Button` の export

@@ -27,6 +27,7 @@ export interface FeatureMeta {
 const DEFINITIONS = [
   { id: "compactSidebar", group: "sidebar", client: true },
   { id: "modelPickerGrid", group: "composer", client: true },
+  { id: "continueSession", group: "conversation", client: true },
 ] as const satisfies readonly FeatureMeta[];
 
 /** Every known feature; order defines settings page order. */

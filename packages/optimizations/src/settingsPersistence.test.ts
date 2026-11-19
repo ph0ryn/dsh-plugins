@@ -91,6 +91,7 @@ test(
       assert.deepEqual(before.value, {
         schemaVersion: 1,
         compactSidebar: false,
+        continueSession: false,
         modelPickerGrid: false,
       });
       // The serving marker keeps this namespace visible in every composition:
@@ -99,6 +100,7 @@ test(
       const root = Object.values(schema.refs ?? {}).find((node) => node.dict !== undefined);
       assert.deepEqual(Object.keys(root?.dict ?? {}).sort(), [
         "compactSidebar",
+        "continueSession",
         "modelPickerGrid",
         "schemaVersion",
       ]);
@@ -117,6 +119,7 @@ test(
       assert.deepEqual(saved.value, {
         schemaVersion: 2,
         compactSidebar: false,
+        continueSession: false,
         modelPickerGrid: false,
       });
       await ctx.settings.mutate(
@@ -128,6 +131,7 @@ test(
       assert.deepEqual(toggled.value, {
         schemaVersion: 2,
         compactSidebar: true,
+        continueSession: false,
         modelPickerGrid: false,
       });
       assert.equal(fiber!.config.compactSidebar.get(), true);
@@ -169,6 +173,7 @@ test(
       assert.deepEqual(descriptor(ctx, "optimizations").value, {
         schemaVersion: 2,
         compactSidebar: true,
+        continueSession: false,
         modelPickerGrid: false,
       });
       assert.equal(descriptor(ctx, "optimizations").autoGenerate, false);
