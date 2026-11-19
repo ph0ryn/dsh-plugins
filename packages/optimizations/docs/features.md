@@ -101,9 +101,11 @@ DSH 自身が max-tokens 表示で案内する文言と同じで、新しいユ�
   Send ボタン自身を包むスロットは無いため、無効な Send は CSS で隠す。
   DSH が送ボタンに安定した `data-*` を出していないため、セレクタはコンポーザの
   `data-composer-card` と自前の `data-optimizations-continue` だけを使う。
-  自前ボタンの親（`standardControls`）に `:has(> ...)` で到達し、その後ろの
-  `button:disabled` だけを隠す。これで `input.commands` や他スロットの disabled
-  ボタンは残る。`:not([hidden])` は activity 展開中に Send を消さないための条件。
+  自前ボタンを含む行（`standardControls`）を `:has(...)` で子孫から選び、その後ろの
+  `button:disabled` だけを隠す。スロット登録は `data-slot` の wrapper を挟むため
+  `:has(> ...)` では行に到達できず、Send が残ってアイコンが重なる。
+  これで `input.commands` や他スロットの disabled ボタンは残る。
+  `:not([hidden])` は activity 展開中に Send を消さないための条件。
   ハッシュ class とローカライズされた `aria-label`、バージョンで増減する
   `aria-busy` / `data-sending` には依存しない。
 - 位置は Send と同じく右 8px、下 6px（行の padding-bottom）+ `translateY(-2px)`。

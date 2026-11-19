@@ -20,7 +20,7 @@ export const CONTINUE_PROMPT = "continue";
 const ABNORMAL_END_REASONS = new Set(["aborted", "blocked", "error", "max-tokens", "interrupted"]);
 
 export const CONTINUE_SESSION_STYLES = `
-[data-composer-card] :has(> [data-optimizations-continue]):not([hidden]) ~ button:disabled {
+[data-composer-card] :has([data-optimizations-continue]):not([hidden]) ~ button:disabled {
   display: none !important;
 }
 [data-composer-card] { position: relative; }
