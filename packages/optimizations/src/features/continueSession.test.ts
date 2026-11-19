@@ -148,6 +148,8 @@ test("the plugin registers one additive composer row and owns its cleanup", () =
     /:has\(\[data-optimizations-continue\]\):not\(\[hidden\]\) ~ button:disabled/,
   );
   assert.doesNotMatch(CONTINUE_SESSION_STYLES, /button:disabled:not/);
+  assert.match(CONTINUE_SESSION_STYLES, /visibility: hidden !important/);
+  assert.doesNotMatch(CONTINUE_SESSION_STYLES, /display: none/);
   assert.match(CONTINUE_SESSION_STYLES, /--dsw-alias-button-info-fill/);
   assert.match(CONTINUE_SESSION_STYLES, /right: 8px/);
   assert.match(CONTINUE_SESSION_STYLES, /bottom: 6px/);

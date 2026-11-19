@@ -21,7 +21,7 @@ const ABNORMAL_END_REASONS = new Set(["aborted", "blocked", "error", "max-tokens
 
 export const CONTINUE_SESSION_STYLES = `
 [data-composer-card] :has([data-optimizations-continue]):not([hidden]) ~ button:disabled {
-  display: none !important;
+  visibility: hidden !important;
 }
 [data-composer-card] { position: relative; }
 [data-optimizations-continue] {

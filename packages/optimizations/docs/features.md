@@ -102,8 +102,10 @@ DSH 自身が max-tokens 表示で案内する文言と同じで、新しいユ�
   DSH が送ボタンに安定した `data-*` を出していないため、セレクタはコンポーザの
   `data-composer-card` と自前の `data-optimizations-continue` だけを使う。
   自前ボタンを含む行（`standardControls`）を `:has(...)` で子孫から選び、その後ろの
-  `button:disabled` だけを隠す。スロット登録は `data-slot` の wrapper を挟むため
-  `:has(> ...)` では行に到達できず、Send が残ってアイコンが重なる。
+  `button:disabled` だけを `visibility: hidden` で隠す。スロット登録は `data-slot` の
+  wrapper を挟むため `:has(> ...)` では行に到達できず、Send が残ってアイコンが重なる。
+  `display: none` にすると Send の 34px と gap が行から消え、`margin-left: auto` の
+  せいでモデル選択などが右に寄るので、レイアウトを保つ `visibility: hidden` を使う。
   これで `input.commands` や他スロットの disabled ボタンは残る。
   `:not([hidden])` は activity 展開中に Send を消さないための条件。
   ハッシュ class とローカライズされた `aria-label`、バージョンで増減する
@@ -132,6 +134,7 @@ DSH 自身が max-tokens 表示で案内する文言と同じで、新しいユ�
 1. `continueSession` を ON にする。
 2. ユーザーが停止したセッション（または max-tokens で終わったセッション）を開き、入力を空にする。
 3. `Continue` が表示され、押すと `continue` が送信されて新しいターンが始まることを確認する。
+   このとき Send の上矢印が重ならず、モデル選択などが右に寄らないことも確認する。
 4. 完了したセッション・実行中のセッション・入力中のセッションでは表示されないことを確認する。
 5. OFF に戻し、スタイルとボタンが消えることを確認する。
 
