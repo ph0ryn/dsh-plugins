@@ -301,7 +301,7 @@ ctx.effect(() =>
 | `loader/volatile-update` イベント                        | Host 側のトグル反映（所有 fiber に配送される）                              |
 | `ctx.theme.overrideTokens`                               | 色・トークンの上書き（戻り値の disposer で解除）                            |
 | `data-slot="<slot 名>"` 属性                             | 既存 UI を CSS で対象化する際の起点                                         |
-| `data-composer-card` 属性                                | コンポーザ内の無効 Send を自前ボタン表示時に隠す起点                        |
+| `data-composer-card` 属性 + `:has(> 自前ボタン)`         | 無効 Send だけを自前ボタン表示時に隠す起点（他の disabled ボタンは残す）    |
 | シェルが公開する `data-*` 属性                           | 状態に応じた CSS の条件付け                                                 |
 | `--dsw-*` / `--dsh-*` CSS 変数                           | 見た目の調整                                                                |
 | `@deepseek-ai/dsh-client-ui-primitives`                  | `Switch` / `Input` / `Button`（シェルの `PLATFORM_MODULES` 経由で require） |

@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 import { installStyleElement } from "./styleElement.ts";
 
@@ -20,14 +20,14 @@ export const CONTINUE_PROMPT = "continue";
 const ABNORMAL_END_REASONS = new Set(["aborted", "blocked", "error", "max-tokens", "interrupted"]);
 
 export const CONTINUE_SESSION_STYLES = `
-[data-composer-card]:has([data-optimizations-continue]) button:disabled:not([data-optimizations-continue]) {
+[data-composer-card] :has(> [data-optimizations-continue]):not([hidden]) ~ button:disabled {
   display: none !important;
 }
 [data-composer-card] { position: relative; }
 [data-optimizations-continue] {
   position: absolute;
   right: 8px;
-  bottom: 8px;
+  bottom: 6px;
   corner-shape: round;
   display: grid;
   place-items: center;
@@ -101,10 +101,16 @@ export function ContinueButton({
   useInput,
   inputActions,
 }: ContinueButtonProps) {
-  const kind = useSyncExternalStore(
-    (onChange) => sessions.binding(sessionId)?.eventSource.subscribe(onChange) ?? (() => {}),
-    () => lastTurnEndKind(sessions.binding(sessionId)?.eventSource.getSnapshot().entries ?? []),
+  const eventSource = sessions.binding(sessionId)?.eventSource;
+  const subscribe = useCallback(
+    (onChange: () => void) => eventSource?.subscribe(onChange) ?? (() => {}),
+    [eventSource],
   );
+  const getSnapshot = useCallback(
+    () => lastTurnEndKind(eventSource?.getSnapshot().entries ?? []),
+    [eventSource],
+  );
+  const kind = useSyncExternalStore(subscribe, getSnapshot);
   const running = useSession((snapshot) => snapshot.running);
   const emptyDraft = useInput(
     (input) => input.draft.trim() === "" && input.attachmentIds.length === 0,

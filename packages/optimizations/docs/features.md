@@ -87,6 +87,7 @@
 直近の `turn/end` が `aborted` / `blocked` / `error` / `max-tokens` / `interrupted` で終わり、
 セッションが非実行中で入力欄と添付が空のとき、コンポーザの無効な Send ボタンの代わりに
 Send と同じ見た目のプライマリーボタン（`aria-label` は `Continue`）が現れる。
+アイコンは Send の上矢印ではなく Continue 用の再生三角で、意図的に異なる。
 押すと入力欄に `continue` を入れて通常の送信を行う。
 DSH 自身が max-tokens 表示で案内する文言と同じで、新しいユーザーメッセージとして1ターンを開始する。
 
@@ -99,8 +100,14 @@ DSH 自身が max-tokens 表示で案内する文言と同じで、新しいユ�
 - `conversation.input.right`（list、scope=`session`）へ `optimizations-` 付き id で追加する。
   Send ボタン自身を包むスロットは無いため、無効な Send は CSS で隠す。
   DSH が送ボタンに安定した `data-*` を出していないため、セレクタはコンポーザの
-  `data-composer-card` と自前の `data-optimizations-continue` を使う（ハッシュ class と
-  ローカライズされた `aria-label` には依存しない）。
+  `data-composer-card` と自前の `data-optimizations-continue` だけを使う。
+  自前ボタンの親（`standardControls`）に `:has(> ...)` で到達し、その後ろの
+  `button:disabled` だけを隠す。これで `input.commands` や他スロットの disabled
+  ボタンは残る。`:not([hidden])` は activity 展開中に Send を消さないための条件。
+  ハッシュ class とローカライズされた `aria-label`、バージョンで増減する
+  `aria-busy` / `data-sending` には依存しない。
+- 位置は Send と同じく右 8px、下 6px（行の padding-bottom）+ `translateY(-2px)`。
+  下を 8px にすると Send より 2px 上にずれる。
 - 終了理由は `ctx.sessions.binding(sessionId).eventSource` の末尾から `turn/end` を探して読む。
   DSH のチャット UI と同じ経路で、Host 側の変更や独自 RPC は使わない。
 - `completed` / `forked` や実行中・入力済みのセッションには出さない。
@@ -111,6 +118,7 @@ DSH 自身が max-tokens 表示で案内する文言と同じで、新しいユ�
 
 - `lastTurnEndKind` がイベント窓の末尾から理由を読み、`shouldShowContinue` が表示条件を判定する純関数。
 - `ContinueButton` は `useSyncExternalStore` でイベント窓を購読し、条件を満たすときだけボタンを描画する。
+  `subscribe` / `getSnapshot` は `useCallback` で eventSource に束縛し、再レンダーごとの再購読を避ける。
 - クリックは `inputActions.setDraft("continue")` と `inputActions.submit()` だけ。
 
 ### 検証

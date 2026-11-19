@@ -63,18 +63,19 @@ test("clicking Continue submits the fixed prompt through the composer actions", 
   const calls: string[] = [];
   const events = new Set<() => void>();
   const entries = [turnEnd("aborted")];
+  let subscribes = 0;
+  const eventSource = {
+    getSnapshot: () => ({ entries }),
+    subscribe(listener: () => void) {
+      subscribes += 1;
+      events.add(listener);
+      return () => events.delete(listener);
+    },
+  };
   const props = {
     sessionId: "session-1",
     sessions: {
-      binding: () => ({
-        eventSource: {
-          getSnapshot: () => ({ entries }),
-          subscribe(listener: () => void) {
-            events.add(listener);
-            return () => events.delete(listener);
-          },
-        },
-      }),
+      binding: () => ({ eventSource }),
     },
     useSession: (selector: (value: { running: boolean }) => unknown) =>
       selector({ running: false }),
@@ -98,6 +99,7 @@ test("clicking Continue submits the fixed prompt through the composer actions", 
     assert.equal(buttons[0].props["aria-label"], "Continue");
     assert.equal(buttons[0].props.title, "Continue");
     assert.equal(buttons[0].props["data-optimizations-continue"], "");
+    assert.equal(subscribes, 1, "the event window is subscribed once");
     await act(async () => {
       buttons[0].props.onClick();
     });
@@ -107,6 +109,7 @@ test("clicking Continue submits the fixed prompt through the composer actions", 
       for (const listener of events) listener();
     });
     assert.equal(renderer.root.findAll((node) => node.type === "button").length, 0);
+    assert.equal(subscribes, 1, "a store notification does not resubscribe");
   } finally {
     renderer.unmount();
   }
@@ -140,8 +143,14 @@ test("the plugin registers one additive composer row and owns its cleanup", () =
   assert.equal(registered[0].component, ContinueButton);
   assert.deepEqual((registered[0].options.inject as () => unknown)(), { sessions });
   assert.match(CONTINUE_SESSION_STYLES, /data-optimizations-continue/);
+  assert.match(
+    CONTINUE_SESSION_STYLES,
+    /:has\(> \[data-optimizations-continue\]\):not\(\[hidden\]\) ~ button:disabled/,
+  );
+  assert.doesNotMatch(CONTINUE_SESSION_STYLES, /button:disabled:not/);
   assert.match(CONTINUE_SESSION_STYLES, /--dsw-alias-button-info-fill/);
   assert.match(CONTINUE_SESSION_STYLES, /right: 8px/);
+  assert.match(CONTINUE_SESSION_STYLES, /bottom: 6px/);
   assert.match(CONTINUE_SESSION_STYLES, /width: 34px/);
   for (const cleanup of effects.cleanups) cleanup();
   assert.equal(unregistered, 1);

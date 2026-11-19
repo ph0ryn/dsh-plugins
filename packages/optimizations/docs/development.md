@@ -134,7 +134,7 @@ DSH を更新したら、次の順で確認する。
    - `ConfigForm` の `get` / `set` / `mutate` / `whileServed`
    - `conversation.input.right` の slot 宣言と、`useSession` / `useInput` / `inputActions` の標準 props
    - `ctx.sessions.binding` と `SessionBinding.eventSource` のイベント窓（`turn/end` の理由）
-   - `data-composer-card` と Send ボタンの DOM 構造（Continue 表示時に隠す CSS の起点）
+   - `data-composer-card` と、`conversation.input.right` の親と Send ボタンが兄弟になっている行構造（Continue 表示時に無効 Send だけを隠す CSS の起点）
    - `loader/volatile-update` イベント（`@deepseek-ai/cordis-plugin-loader`）の有無と通知条件
    - `ctx.theme.overrideTokens` の有無と引数
    - `@deepseek-ai/dsh-client-ui-primitives` の `Switch` / `Input` / `Button` の export
