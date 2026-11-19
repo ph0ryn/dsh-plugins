@@ -122,7 +122,13 @@ export function ContinueButton({
       }}
     >
       <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-        <path d="M4 2.5 13 8l-9 5.5z" fill="currentColor" />
+        <path
+          d="M5.5 3.5 12.5 8l-7 4.5z"
+          fill="currentColor"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinejoin="round"
+        />
       </svg>
     </button>
   );
