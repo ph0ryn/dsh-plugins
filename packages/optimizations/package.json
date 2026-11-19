@@ -1,6 +1,6 @@
 {
   "name": "@ph0ryn/dsh-optimizations",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Small individually switchable improvements for DeepSeek Harness across the Web GUI and host behaviour",
   "keywords": [
     "dsh",

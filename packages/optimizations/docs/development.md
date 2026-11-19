@@ -68,7 +68,7 @@ tarball を作ってから入れる。
 
 ```sh
 pnpm --filter @ph0ryn/dsh-optimizations pack --pack-destination ./artifacts
-dsh plugin --profile web add ./artifacts/ph0ryn-dsh-optimizations-0.1.1.tgz --ignore-scripts
+dsh plugin --profile web add ./artifacts/ph0ryn-dsh-optimizations-0.1.2.tgz --ignore-scripts
 ```
 
 `pack` は作業ツリーの `package.json` を書き換える（`prepack` の `clean-pkg-json`）ので、
@@ -147,7 +147,7 @@ DSH を更新したら、次の順で確認する。
 ## 公開
 
 リリースは GitHub Actions の Release ワークフローが行う。ディレクトリ名を使ったタグ
-`<plugin>-v<version>`（例 `optimizations-v0.1.1`）を push すると、ワークフローが
+`<plugin>-v<version>`（例 `optimizations-v0.1.2`）を push すると、ワークフローが
 `packages/optimizations/package.json` を読み、`pnpm --filter @ph0ryn/dsh-optimizations pack` で
 tarball を作成し、npm と GitHub Release に公開する。`package.json` の `version` とタグの version は
 一致させる。
