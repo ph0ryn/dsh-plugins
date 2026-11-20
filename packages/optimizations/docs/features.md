@@ -33,9 +33,14 @@
 - `spec.md` の非目標（既存 UI の描画の差し替え）に対する例外。既存コントロールを複製せず、
   シェルが描画した要素を CSS で再配置する範囲に限る。
 - DSH 追従時に確認する DOM 依存（`development.md` の追従手順の一部）:
-  - `[data-slot="sidebar"]` 直下のロゴ行 / New Session ボタン / `nav`（パネル行 + More アンカー）の並び
-  - `[data-slot="sidebar.brand.name"]` と `[data-slot="sidebar.panellist"]` の存在
-  - More アンカーが `nav` の最後の子で、`aria-haspopup="menu"` を持つボタンであること
+  - ロゴ行 / New Session / `nav`（パネル行 + More アンカー）が `[data-slot="sidebar"]` 配下にあること。
+    0.2.1 では New Session と `nav` がルートの直接の子だが、0.2.2 では `sidebar.session.action` と
+    `scrollRegion > scrollArea` に包まれる。
+  - `[data-slot="sidebar.brand.name"]` が残ること。パネル行は 0.2.1 では `nav > button`、
+    0.2.2 では `nav > div` の中のボタンになる。
+  - More アンカーが `nav` の最後の子で、`aria-haspopup="menu"` を持つボタンであること。
+- 0.2.1 と 0.2.2 の DOM を同じスタイルで受ける。`slots.entries` / `layout.panelInfo` / `selectPanel`
+  と `sidebar.panellist.actions` の owner props は両版で同じなので、メニュー行の実装は変えない。
 
 ### 実装上の構造
 
@@ -43,8 +48,9 @@
   `@container (min-width: 200px)` の中でのみ再配置する（56px のレールでは何もしない）。
 - 行の非表示は `[data-slot="sidebar"]` 配下の要素の並びで行う。CSS Modules のクラス名には依存しない。
   - ロゴ行: ブランド名（`[data-slot="sidebar.brand.name"]`）を隠してマークだけにする。
-  - New Session: 既存ボタンを絶対配置でロゴ行に移す。
-  - パネル行: `nav > button`（3行）を隠し、More のアンカーだけをロゴ行右へ移す。
+  - New Session: 既存ボタンを絶対配置でロゴ行に移す。0.2.2 ではボタンを包む行の高さも0にする。
+  - パネル行: `nav > button`（0.2.1）と `nav > div`（0.2.2）を隠し、More のアンカーだけをロゴ行右へ移す。
+    0.2.2 の `scrollRegion` は `position: relative` なので、アンカーの位置基準がルートになるよう打ち消す。
   - Workspaces: 空いた分だけ自動で上に詰まる（`sidebar.workspaces` はそのまま）。
 - 隠したパネル行は `sidebar.panellist.actions` に自前の行を追加して、既存 More メニューの先頭に戻す。
   行のアイコンとラベルは `ctx.slots.entries("sidebar.panellist")` から取得し、クリックで

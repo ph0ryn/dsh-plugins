@@ -152,16 +152,26 @@ test("the feature moves the native controls with CSS instead of restyling them",
   assert.match(COMPACT_SIDEBAR_STYLES, /@container \(min-width: 200px\)/);
   assert.match(
     COMPACT_SIDEBAR_STYLES,
-    /\[data-slot="sidebar"\] > div > nav > button \{ display: none; \}/,
-  );
-  assert.match(
-    COMPACT_SIDEBAR_STYLES,
-    /\[data-slot="sidebar"\] > div > button \{[\s\S]*position: absolute;/,
-  );
-  assert.match(
-    COMPACT_SIDEBAR_STYLES,
     /\[data-slot="sidebar\.brand\.name"\] \{ display: none !important; \}/,
   );
+  // DSH 0.2.1: the New Session button is a direct child of the sidebar root,
+  // and the panel rows are direct button children of nav.
+  assert.match(
+    COMPACT_SIDEBAR_STYLES,
+    /\[data-slot="sidebar"\] > div > button[^{]*\{[\s\S]*position: absolute;/,
+  );
+  assert.match(
+    COMPACT_SIDEBAR_STYLES,
+    /\[data-slot="sidebar"\] nav > button,\n  \[data-slot="sidebar"\] nav > div \{ display: none; \}/,
+  );
+  // DSH 0.2.2: New Session moved behind the sidebar.session.action HOC, and
+  // the panel rows are wrapped in divs inside scrollRegion > scrollArea.
+  assert.match(COMPACT_SIDEBAR_STYLES, /\[data-slot="sidebar\.session\.action"\] > button/);
+  assert.match(
+    COMPACT_SIDEBAR_STYLES,
+    /\[data-slot="sidebar"\] > div > div:has\(nav\) \{ position: static; \}/,
+  );
+  assert.match(COMPACT_SIDEBAR_STYLES, /\[data-slot="sidebar"\] nav > span \{ position: absolute;/);
 });
 
 test("the plugin registers its menu rows and installs cleanup-owning styles", () => {

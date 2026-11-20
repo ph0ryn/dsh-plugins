@@ -37,7 +37,9 @@ div:has(> [data-slot="sidebar"]) { container-type: inline-size; }
     padding: 0;
     justify-content: center;
   }
-  [data-slot="sidebar"] > div > button {
+  /* DSH <= 0.2.1 puts New Session directly under the root; 0.2.2 wraps it in sidebar.session.action. */
+  [data-slot="sidebar"] > div > button,
+  [data-slot="sidebar.session.action"] > button {
     position: absolute;
     top: 18px;
     left: 44px;
@@ -46,18 +48,24 @@ div:has(> [data-slot="sidebar"]) { container-type: inline-size; }
     min-height: 28px;
     padding: 0 10px;
   }
-  [data-slot="sidebar"] > div > button > span:last-child { display: none !important; }
-  [data-slot="sidebar"] > div > nav { display: contents; }
-  [data-slot="sidebar"] > div > nav > button { display: none; }
-  [data-slot="sidebar"] > div > nav > span { position: absolute; top: 18px; right: 44px; }
-  [data-slot="sidebar"] > div > nav > span > button {
+  [data-slot="sidebar"] > div > button > span:last-child,
+  [data-slot="sidebar.session.action"] > button > span:last-child { display: none !important; }
+  [data-slot="sidebar"] > div > div:has(> [data-slot="sidebar.session.action"]) { height: 0; margin: 0; }
+  /* DSH <= 0.2.1 puts panel buttons directly in nav; 0.2.2 wraps them in divs inside scrollRegion. */
+  [data-slot="sidebar"] nav { display: contents; }
+  [data-slot="sidebar"] nav > button,
+  [data-slot="sidebar"] nav > div { display: none; }
+  /* 0.2.2's scrollRegion is a containing block; the More anchor must still align to the root row. */
+  [data-slot="sidebar"] > div > div:has(nav) { position: static; }
+  [data-slot="sidebar"] nav > span { position: absolute; top: 18px; right: 44px; }
+  [data-slot="sidebar"] nav > span > button {
     width: 28px;
     height: 28px;
     min-height: 28px;
     padding: 0;
     justify-content: center;
   }
-  [data-slot="sidebar"] > div > nav > span > button > span:last-child { display: none !important; }
+  [data-slot="sidebar"] nav > span > button > span:last-child { display: none !important; }
 }
 .optimizations-sidebar-nav {
   display: grid;
