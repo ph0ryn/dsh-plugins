@@ -6,7 +6,7 @@
 
 - リポジトリの前提に従う: Node.js 22.19 以上、pnpm 11.22.0。
 - 動作確認済みの DSH バージョンは、ホスト側 `src/index.ts` の `EXPECTED_DSH_VERSIONS` に列挙する。
-  現在はワークスペースの型基準 `0.2.1-rc.2` と `0.2.2-alpha.3` を入れてある。
+  現在はワークスペースの型基準 `0.2.1-rc.2` と `0.2.2-alpha.3`、実機で確認した `0.2.2-rc.5` を入れてある。
   手元の DSH (`dsh --version`) を変えたら一覧と `architecture.md` の型基準の記述を更新する。
 - `package.json` の `peerDependencies` も `catalog:` で参照する。pnpm は pack / publish 時に
   実 range へ置き換えるため、公開物の互換判定は従来どおり range で行われる。`engines.dsh` を

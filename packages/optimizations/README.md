@@ -18,7 +18,7 @@ and the feature registry/runtime are in place. Every feature stays OFF until ena
 profile; [docs/spec.md](docs/spec.md) owns the contract and
 [docs/features.md](docs/features.md) documents each feature individually.
 
-Verified against DSH 0.2.1-rc.2 and 0.2.2-alpha.3. Other versions only produce a startup warning.
+Verified against DSH 0.2.1-rc.2, 0.2.2-alpha.3 and 0.2.2-rc.5. Other versions only produce a startup warning.
 
 ## Install
 

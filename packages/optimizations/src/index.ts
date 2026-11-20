@@ -13,10 +13,11 @@ export const name = "optimizations";
 
 /**
  * Versions this plugin was developed against: the workspace type baseline
- * (0.2.1-rc.2) and the DSH release the local Web GUI runs (0.2.2-alpha.3).
+ * (0.2.1-rc.2), the earlier local Web GUI release (0.2.2-alpha.3), and the
+ * release whose sidebar DOM the compact feature now handles (0.2.2-rc.5).
  * A mismatch only warns; features are still attempted.
  */
-const EXPECTED_DSH_VERSIONS = ["0.2.1-rc.2", "0.2.2-alpha.3"];
+const EXPECTED_DSH_VERSIONS = ["0.2.1-rc.2", "0.2.2-alpha.3", "0.2.2-rc.5"];
 
 /** Host half: declare the settings schema, start Host-side feature runtime, suppress the auto page. */
 export function apply(ctx: Context, config: Config): void {
