@@ -54,6 +54,15 @@ const schema = z.strictObject({
           z.strictObject({
             id: z.string().check(z.minLength(1)),
             name: z.string().check(z.minLength(1)),
+            supportedInApi: z.optional(z.boolean()),
+            contextWindow: z.optional(
+              z.number().check(
+                z.int(),
+                z.refine((value) => value > 0, "Expected a positive integer"),
+              ),
+            ),
+            input: z.optional(z.array(z.string().check(z.minLength(1)))),
+            reasoningEfforts: z.optional(z.array(z.string().check(z.minLength(1)))),
           }),
         ),
       ),

@@ -4,12 +4,18 @@ import {
   type PiAiAdapterOptions,
   type ResolvedPiAiProviderProfile,
 } from "@deepseek-ai/dsh-llm-pi-ai";
-import { InMemoryCredentialStore, defaultProviderAuthContext } from "@earendil-works/pi-ai";
+import {
+  InMemoryCredentialStore,
+  defaultProviderAuthContext,
+  type Model,
+  type ModelInputModality,
+  type ThinkingLevelMap,
+} from "@earendil-works/pi-ai";
 import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
 
 import { Accounts } from "./accounts.ts";
+import { RESOURCE, type Account, type ModelChoice } from "./oauth.ts";
 
-import type { Account } from "./oauth.ts";
 import type { Context } from "@deepseek-ai/cordis";
 import type {} from "@deepseek-ai/dsh-attachment";
 import type {} from "@deepseek-ai/dsh-fs";
@@ -19,16 +25,131 @@ interface Profile extends ResolvedPiAiProviderProfile {
   accountId?: string;
 }
 
+type ResponsesModel = Model<"openai-responses">;
+
+const NON_CHAT_MODEL = /(?:^|-)(?:image|tts|transcribe|realtime|audio|embedding)(?:-|$)/i;
+const REPRESENTABLE_REASONING_EFFORTS = new Set([
+  "none",
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+  "max",
+]);
+
+function isGptChatModel(id: string): boolean {
+  return id.startsWith("gpt-") && !NON_CHAT_MODEL.test(id);
+}
+
+function isInputModality(value: string): value is ModelInputModality {
+  return value === "text" || value === "image";
+}
+
+function templateFor(
+  id: string,
+  known: ReadonlyMap<string, ResponsesModel>,
+): ResponsesModel | undefined {
+  const exact = known.get(id);
+  if (exact) return exact;
+  const candidates = [...known.values()].filter(
+    (model) => isGptChatModel(model.id) && model.api === "openai-responses" && model.reasoning,
+  );
+  const byNewest = (left: ResponsesModel, right: ResponsesModel) =>
+    right.id.localeCompare(left.id, undefined, { numeric: true });
+  const tier = id.match(/-([a-z]+)$/i)?.[1]?.toLowerCase();
+  const sameTier = tier
+    ? candidates.filter((model) => model.id.toLowerCase().endsWith(`-${tier}`))
+    : [];
+  sameTier.sort(byNewest);
+  if (sameTier[0]) return sameTier[0];
+  const generation = id.match(/^gpt-(\d+)/)?.[1];
+  const sameGeneration = generation
+    ? candidates.filter((model) => new RegExp(`^gpt-${generation}(?:[.-]|$)`).test(model.id))
+    : [];
+  sameGeneration.sort(byNewest);
+  if (sameGeneration[0]) return sameGeneration[0];
+  return candidates.sort(
+    (left, right) => right.contextWindow - left.contextWindow || byNewest(left, right),
+  )[0];
+}
+
+function canSynthesize(choice: ModelChoice): boolean {
+  return (
+    isGptChatModel(choice.id) &&
+    choice.supportedInApi === true &&
+    choice.contextWindow !== undefined &&
+    choice.input?.includes("text") === true
+  );
+}
+
+function thinkingLevelMapFor(efforts: readonly string[] | undefined): ThinkingLevelMap | undefined {
+  if (
+    efforts === undefined ||
+    !efforts.some((effort) => REPRESENTABLE_REASONING_EFFORTS.has(effort))
+  )
+    return undefined;
+  const supported = new Set(efforts);
+  return {
+    off: supported.has("none") ? "none" : null,
+    minimal: supported.has("minimal") ? "minimal" : null,
+    low: supported.has("low") ? "low" : null,
+    medium: supported.has("medium") ? "medium" : null,
+    high: supported.has("high") ? "high" : null,
+    xhigh: supported.has("xhigh") ? "xhigh" : null,
+    max: supported.has("max") ? "max" : null,
+  };
+}
+
 function profiles(ctx: Context, account?: Account): ReadonlyMap<string, Profile> {
   const base = openaiProvider();
   const known = new Map(base.getModels().map((model) => [model.id, model]));
-  const models = (account?.models ?? []).flatMap(({ id, name }) => {
-    const model = known.get(id);
-    if (!model) {
-      ctx.logger.warn("Skipping ChatGPT model %s: missing from pi-ai.", id);
+  const models = (account?.models ?? []).flatMap((choice) => {
+    if (choice.supportedInApi === false || NON_CHAT_MODEL.test(choice.id)) return [];
+    const exact = known.get(choice.id);
+    if (!exact && !canSynthesize(choice)) {
+      ctx.logger.warn("Skipping ChatGPT model %s: missing SIWC chat capabilities.", choice.id);
       return [];
     }
-    return [{ ...model, name }];
+    const template = templateFor(choice.id, known);
+    if (!template) {
+      ctx.logger.warn("Skipping ChatGPT model %s: no pi-ai template.", choice.id);
+      return [];
+    }
+    const input =
+      choice.input === undefined ? template.input : choice.input.filter(isInputModality);
+    if (!input.includes("text")) {
+      ctx.logger.warn("Skipping ChatGPT model %s: no supported text input.", choice.id);
+      return [];
+    }
+    const contextWindow = choice.contextWindow ?? (exact ? template.contextWindow : undefined);
+    if (contextWindow === undefined) {
+      ctx.logger.warn("Skipping ChatGPT model %s: missing SIWC context window.", choice.id);
+      return [];
+    }
+    if (!exact)
+      ctx.logger.info("Synthesizing ChatGPT model %s from template %s", choice.id, template.id);
+    const model: ResponsesModel = {
+      id: choice.id,
+      name: choice.name,
+      api: "openai-responses",
+      provider: "openai",
+      baseUrl: RESOURCE,
+      input,
+      cost: template.cost,
+      reasoning:
+        choice.reasoningEfforts === undefined
+          ? Boolean(exact && template.reasoning)
+          : choice.reasoningEfforts.some((effort) => REPRESENTABLE_REASONING_EFFORTS.has(effort)),
+      thinkingLevelMap:
+        choice.reasoningEfforts === undefined && exact
+          ? template.thinkingLevelMap
+          : thinkingLevelMapFor(choice.reasoningEfforts),
+      contextWindow,
+      maxTokens: template.maxTokens,
+      ...(template.compat ? { compat: template.compat } : {}),
+    };
+    return [model];
   });
   return new Map([
     [

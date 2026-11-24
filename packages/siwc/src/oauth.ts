@@ -68,6 +68,10 @@ export interface Account {
 export interface ModelChoice {
   id: string;
   name: string;
+  supportedInApi?: boolean;
+  contextWindow?: number;
+  input?: string[];
+  reasoningEfforts?: string[];
 }
 
 function object(value: unknown): asserts value is Record<string, unknown> {
@@ -269,12 +273,44 @@ export async function listModels(access: string, signal?: AbortSignal): Promise<
   return data.models
     .filter((model: unknown) => {
       object(model);
-      return model.visibility === "list";
+      if (model.visibility !== "list") return false;
+      if (model.supported_in_api !== undefined) {
+        assert.equal(typeof model.supported_in_api, "boolean", "Invalid ChatGPT API support flag");
+      }
+      return model.supported_in_api !== false;
     })
     .map((model: Record<string, unknown>) => {
       string(model.slug, "model slug");
       string(model.display_name, "model display name");
-      return { id: model.slug, name: model.display_name };
+      const choice: ModelChoice = { id: model.slug, name: model.display_name };
+      if (model.supported_in_api !== undefined)
+        choice.supportedInApi = model.supported_in_api as boolean;
+      if (model.context_window !== undefined) {
+        assert.ok(
+          typeof model.context_window === "number" &&
+            Number.isSafeInteger(model.context_window) &&
+            model.context_window > 0,
+          "Invalid ChatGPT context window",
+        );
+        choice.contextWindow = model.context_window;
+      }
+      if (model.input_modalities !== undefined) {
+        assert.ok(Array.isArray(model.input_modalities), "Invalid ChatGPT input modalities");
+        for (const modality of model.input_modalities) string(modality, "input modality");
+        choice.input = [...model.input_modalities] as string[];
+      }
+      if (model.supported_reasoning_levels !== undefined) {
+        assert.ok(
+          Array.isArray(model.supported_reasoning_levels),
+          "Invalid ChatGPT reasoning levels",
+        );
+        choice.reasoningEfforts = model.supported_reasoning_levels.map((level: unknown) => {
+          object(level);
+          string(level.effort, "reasoning effort");
+          return level.effort;
+        });
+      }
+      return choice;
     });
 }
 

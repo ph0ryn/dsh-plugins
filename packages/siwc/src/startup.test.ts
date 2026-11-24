@@ -14,9 +14,19 @@ import Llm from "@deepseek-ai/dsh-llm";
 import { Accounts } from "./accounts.ts";
 import * as plugin from "./index.ts";
 
+import type { ModelChoice } from "./oauth.ts";
+
 const cached = [{ id: "gpt-4.1", name: "Cached model" }];
 const latest = [{ id: "gpt-4.1-mini", name: "Updated model" }];
 const unknown = { id: "future-model", name: "Unknown" };
+const synthesized = {
+  id: "gpt-6.2-sol",
+  name: "GPT-6.2 Sol",
+  supportedInApi: true,
+  contextWindow: 500_000,
+  input: ["text", "image"],
+  reasoningEfforts: ["low", "medium", "high", "xhigh", "max", "ultra"],
+};
 
 for (const scenario of [
   "refresh",
@@ -29,17 +39,20 @@ for (const scenario of [
   "unknown-model",
   "unknown-only",
   "cached-unknown",
+  "synthesized-model",
   "persistence-error",
 ] as const) {
   test(`startup model catalog: ${scenario}`, async (t) => {
     const home = await mkdtemp(join(tmpdir(), "dsh-siwc-startup-"));
     const saved = scenario === "cached-unknown" ? [...cached, unknown] : cached;
-    const updated =
+    const updated: ModelChoice[] =
       scenario === "unknown-model"
         ? [...latest, unknown]
         : scenario === "unknown-only"
           ? [unknown]
-          : latest;
+          : scenario === "synthesized-model"
+            ? [...latest, synthesized]
+            : latest;
     const requests: string[] = [];
     const warnings: string[] = [];
     const fixture = createServer(async (request, response) => {
@@ -84,18 +97,31 @@ for (const scenario of [
           response.writeHead(scenario === "unauthorized" ? 401 : 503);
           response.end(JSON.stringify({ error: { code: "fixture_error" } }));
         } else {
-          response.end(
-            JSON.stringify({
-              models: [
-                ...updated.map(({ id, name }) => ({
-                  slug: id,
-                  display_name: name,
-                  visibility: "list",
-                })),
-                { slug: "hidden", display_name: "Hidden", visibility: "hide" },
-              ],
-            }),
-          );
+          const catalog = {
+            models: [
+              ...updated.map((model) => ({
+                slug: model.id,
+                display_name: model.name,
+                visibility: "list",
+                ...(model.supportedInApi !== undefined
+                  ? { supported_in_api: model.supportedInApi }
+                  : {}),
+                ...(model.contextWindow !== undefined
+                  ? { context_window: model.contextWindow }
+                  : {}),
+                ...(model.input !== undefined ? { input_modalities: model.input } : {}),
+                ...(model.reasoningEfforts !== undefined
+                  ? {
+                      supported_reasoning_levels: model.reasoningEfforts.map((effort) => ({
+                        effort,
+                      })),
+                    }
+                  : {}),
+              })),
+              { slug: "hidden", display_name: "Hidden", visibility: "hide" },
+            ],
+          };
+          response.end(JSON.stringify(catalog));
         }
       } else {
         response.writeHead(404).end();
@@ -160,18 +186,29 @@ for (const scenario of [
         return;
       }
       await ctx.plugin(plugin);
-      const expected = ["refresh", "expired", "unknown-model", "unknown-only"].includes(scenario)
+      const expected = [
+        "refresh",
+        "expired",
+        "unknown-model",
+        "unknown-only",
+        "synthesized-model",
+      ].includes(scenario)
         ? updated
         : saved;
       assert.deepEqual((await accounts.read()).accounts[0].models, expected);
       assert.deepEqual(
         (await ctx.llm.listModels("openai")).map(({ id, name }) => ({ id, name })),
-        scenario === "signed-out" ? [] : expected.filter(({ id }) => id !== unknown.id),
+        scenario === "signed-out"
+          ? []
+          : expected.filter(({ id }) => id !== unknown.id).map(({ id, name }) => ({ id, name })),
       );
       await ctx.llm.listModels("openai");
       if (scenario.startsWith("unknown-") || scenario === "cached-unknown") {
         const warning = warnings.pop();
-        assert.match(warning!, /Skipping ChatGPT model future-model.*missing from pi-ai/);
+        assert.match(
+          warning!,
+          /Skipping ChatGPT model future-model.*missing SIWC chat capabilities/,
+        );
       }
       assert.deepEqual(
         requests,

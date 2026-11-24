@@ -18,7 +18,16 @@ const account = {
   idToken: "id-token",
   tokens,
   pending: { tokens, idToken: "pending-id-token", receivedAt: 1_799_999_000_000 },
-  models: [{ id: "gpt-4.1", name: "GPT-4.1" }],
+  models: [
+    {
+      id: "gpt-6.2-sol",
+      name: "GPT-6.2 Sol",
+      supportedInApi: true,
+      contextWindow: 500_000,
+      input: ["text", "image"],
+      reasoningEfforts: ["low", "medium", "high", "xhigh", "max", "ultra"],
+    },
+  ],
 };
 
 test("saved state accepts absent, minimal and complete registrations", () => {
@@ -27,6 +36,15 @@ test("saved state accepts absent, minimal and complete registrations", () => {
     { version: 1, accounts: [] },
     { version: 1, accounts: [{ id: account.id, clientId: account.clientId }] },
     { version: 1, activeId: account.id, welcomed: true, accounts: [account] },
+    {
+      version: 1,
+      accounts: [
+        {
+          ...account,
+          models: [{ id: "gpt-4.1", name: "GPT-4.1" }],
+        },
+      ],
+    },
     {
       version: 1,
       accounts: [
@@ -70,6 +88,10 @@ test("saved state rejects malformed or unknown fields at every level", () => {
     { ...account, models: [{ id: "", name: "Model" }] },
     { ...account, models: [{ id: "model", name: "" }] },
     { ...account, models: [{ id: "model", name: "Model", extra: true }] },
+    { ...account, models: [{ id: "model", name: "Model", contextWindow: 0 }] },
+    { ...account, models: [{ id: "model", name: "Model", input: [1] }] },
+    { ...account, models: [{ id: "model", name: "Model", reasoningEfforts: [""] }] },
+    { ...account, models: [{ id: "model", name: "Model", supportedInApi: "true" }] },
   ]) {
     assert.throws(() =>
       parseState({ kind: "grant", payload: { version: 1, accounts: [invalid] } }),

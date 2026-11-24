@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { Context } from "@deepseek-ai/cordis";
+import { Context, Logger } from "@deepseek-ai/cordis";
 import Agents, { type Agent } from "@deepseek-ai/dsh-agent";
 import Authorization from "@deepseek-ai/dsh-authorization";
 import Commands from "@deepseek-ai/dsh-commands";
@@ -21,6 +21,13 @@ import { Accounts, KEY, hostId } from "./accounts.ts";
 import * as plugin from "./index.ts";
 
 const MODEL = "gpt-4.1";
+const FUTURE_MODEL = "gpt-6.2-sol";
+const MINI_MODEL = "gpt-6.2-mini";
+const PARTIAL_MODEL = "gpt-6.2-partial";
+const ULTRA_MODEL = "gpt-6.2-ultra";
+const REASONING_LEVELS = ["low", "medium", "high", "xhigh", "max", "ultra"].map((effort) => ({
+  effort,
+}));
 const ISSUER = "https://auth.openai.com";
 const SCOPE = "openid profile email offline_access resource.invoke chatgpt.tokens.use.direct";
 
@@ -162,10 +169,97 @@ test(
           response.end(
             JSON.stringify({
               models: [
-                { slug: MODEL, display_name: "Fixture model", visibility: "list" },
+                {
+                  slug: MODEL,
+                  display_name: "Fixture model",
+                  visibility: "list",
+                  supported_in_api: true,
+                  context_window: 500_000,
+                  input_modalities: ["text"],
+                  supported_reasoning_levels: [],
+                },
+                {
+                  slug: "gpt-image-1",
+                  display_name: "Image model",
+                  visibility: "list",
+                  supported_in_api: true,
+                  context_window: 500_000,
+                  input_modalities: ["text", "image"],
+                  supported_reasoning_levels: [],
+                },
+                {
+                  slug: "gpt-realtime-2.1",
+                  display_name: "Realtime model",
+                  visibility: "list",
+                  supported_in_api: true,
+                  context_window: 32_000,
+                  input_modalities: ["text", "image"],
+                  supported_reasoning_levels: [],
+                },
+                {
+                  slug: "gpt-6.3-sol",
+                  display_name: "Missing API support",
+                  visibility: "list",
+                  context_window: 500_000,
+                  input_modalities: ["text", "image"],
+                  supported_reasoning_levels: REASONING_LEVELS,
+                },
+                {
+                  slug: "gpt-6.3-astra",
+                  display_name: "Missing text input",
+                  visibility: "list",
+                  supported_in_api: true,
+                  context_window: 272_000,
+                  input_modalities: ["image"],
+                  supported_reasoning_levels: REASONING_LEVELS,
+                },
+                {
+                  slug: "gpt-6.3-terra",
+                  display_name: "Missing context window",
+                  visibility: "list",
+                  supported_in_api: true,
+                  input_modalities: ["text", "image"],
+                  supported_reasoning_levels: REASONING_LEVELS,
+                },
                 { slug: "not-for-display", display_name: "Hidden", visibility: "hide" },
                 ...(unknownModel
-                  ? [{ slug: "future-model", display_name: "Future model", visibility: "list" }]
+                  ? [
+                      {
+                        slug: FUTURE_MODEL,
+                        display_name: "GPT-6.2 Sol",
+                        visibility: "list",
+                        supported_in_api: true,
+                        context_window: 500_000,
+                        input_modalities: ["text", "image"],
+                        supported_reasoning_levels: REASONING_LEVELS,
+                      },
+                      {
+                        slug: MINI_MODEL,
+                        display_name: "GPT-6.2 Mini",
+                        visibility: "list",
+                        supported_in_api: true,
+                        context_window: 500_000,
+                        input_modalities: ["text", "image"],
+                        supported_reasoning_levels: REASONING_LEVELS,
+                      },
+                      {
+                        slug: PARTIAL_MODEL,
+                        display_name: "GPT-6.2 Partial",
+                        visibility: "list",
+                        supported_in_api: true,
+                        context_window: 500_000,
+                        input_modalities: ["text", "image"],
+                      },
+                      {
+                        slug: ULTRA_MODEL,
+                        display_name: "GPT-6.2 Ultra",
+                        visibility: "list",
+                        supported_in_api: true,
+                        context_window: 500_000,
+                        input_modalities: ["text", "image"],
+                        supported_reasoning_levels: [{ effort: "ultra" }],
+                      },
+                    ]
                   : []),
               ],
             }),
@@ -262,7 +356,14 @@ test(
       assert.equal(url.hostname, "127.0.0.1", "Test tried to contact an external service");
       return realFetch(request);
     });
+    const synthesisLogs: string[] = [];
     const ctx = new Context();
+    ctx.logger.exporter({
+      levels: { default: 2 },
+      export(message) {
+        if (message.type === "info") synthesisLogs.push(Logger.format(this, message));
+      },
+    });
     const start = async () => {
       await ctx.plugin(Credentials, { dshHome: home, watch: false });
       await ctx.plugin(Authorization);
@@ -323,11 +424,11 @@ test(
         },
       });
     };
-    const generate = () =>
+    const generate = (model = MODEL) =>
       Array.fromAsync(
         ctx.llm.stream({
           provider: "openai",
-          model: MODEL,
+          model,
           messages: [{ role: "user", content: [{ type: "text", text: "Hello" }] }],
           maxTokens: 64,
           temperature: 0.5,
@@ -360,6 +461,10 @@ test(
             (await ctx.llm.listModels("openai")).map((model) => model.name),
             ["Fixture model"],
           );
+          const known = await ctx.llm.resolveModelInfo("openai", MODEL);
+          assert.equal(known.context?.contextWindow, 500_000);
+          assert.deepEqual(known.inputModalities, ["text"]);
+          assert.equal(known.reasoning, undefined);
           assert.ok((await readFile(join(home, ".credentials.yaml"), "utf8")).includes("access-1"));
         },
       );
@@ -482,7 +587,7 @@ test(
         },
       );
       await t.test(
-        "unknown models do not block sign-in, account switching or inference",
+        "unknown chat models synthesize from SIWC capabilities and pi-ai hints",
         async () => {
           const state = await accounts().read();
           unknownModel = true;
@@ -493,12 +598,39 @@ test(
             assert.equal((await accounts().read()).activeId, state.accounts[0].id);
             assert.deepEqual(
               (await ctx.llm.listModels("openai")).map(({ id }) => id),
-              [MODEL],
+              [MODEL, FUTURE_MODEL, MINI_MODEL, PARTIAL_MODEL, ULTRA_MODEL],
             );
-            const finish = (await generate()).at(-1);
+            const finish = (await generate(FUTURE_MODEL)).at(-1);
             assert.ok(finish?.type === "finish");
             assert.notEqual(finish.reason.kind, "error");
           }
+          const resolved = await ctx.llm.resolveModelInfo("openai", FUTURE_MODEL);
+          assert.equal(resolved.context?.contextWindow, 500_000);
+          assert.deepEqual(resolved.inputModalities, ["text", "image"]);
+          assert.deepEqual(
+            resolved.reasoning?.efforts.map(({ id }) => id),
+            ["low", "medium", "high", "xhigh", "max"],
+          );
+          const partial = await ctx.llm.resolveModelInfo("openai", PARTIAL_MODEL);
+          assert.equal(partial.context?.contextWindow, 500_000);
+          assert.equal(partial.reasoning, undefined);
+          const ultra = await ctx.llm.resolveModelInfo("openai", ULTRA_MODEL);
+          assert.equal(ultra.reasoning, undefined);
+          assert.ok(
+            synthesisLogs.some((message) =>
+              new RegExp(`${FUTURE_MODEL} from template gpt-.*-sol`).test(message),
+            ),
+          );
+          assert.ok(
+            synthesisLogs.some((message) =>
+              new RegExp(`${MINI_MODEL} from template gpt-.*-mini`).test(message),
+            ),
+          );
+          assert.ok(synthesisLogs.every((message) => !message.includes("from template o")));
+          const request = requests.findLast(
+            (entry) => entry.path === "/v1/responses" && entry.body?.model === FUTURE_MODEL,
+          );
+          assert.equal(request?.body?.max_output_tokens, undefined);
           unknownModel = false;
         },
       );
