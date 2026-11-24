@@ -42,8 +42,8 @@ dsh plugin --profile web add ./artifacts/dsh-siwc-0.1.4.tgz --ignore-scripts
 
 ## Use
 
-Open **Settings → SIWC** and select **Sign in with ChatGPT**. Finish signing in in your browser,
-then choose a model under **ChatGPT Subscription Plan**.
+Open **Settings → SIWC**, choose **Add account…** in the account dropdown, and finish signing in
+in your browser. Then choose a model under **ChatGPT Subscription Plan**.
 
 The SIWC settings page is the only account management surface. Use it to sign in, add or reconnect
 an account, switch saved accounts, and sign out. Signing out removes local tokens but keeps saved

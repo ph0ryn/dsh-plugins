@@ -24,6 +24,8 @@ test("SIWC Settings account actions stay authenticated, credential-free and dura
   const ctx = new Context();
   const realFetch = globalThis.fetch;
   let revokeStatus = 200;
+  let revokeDelay = 0;
+  let revokeCalls = 0;
   t.mock.method(globalThis, "fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     if (url.href === "https://auth.openai.com/.well-known/openid-configuration")
@@ -34,8 +36,11 @@ test("SIWC Settings account actions stay authenticated, credential-free and dura
         jwks_uri: "https://auth.openai.com/jwks",
         revocation_endpoint: "https://auth.openai.com/revoke",
       });
-    if (url.href === "https://auth.openai.com/revoke")
+    if (url.href === "https://auth.openai.com/revoke") {
+      revokeCalls++;
+      if (revokeDelay) await delay(revokeDelay);
       return new Response(null, { status: revokeStatus });
+    }
     if (url.href === "https://api.openai.com/v1/models") return Response.json({ models: [] });
     return realFetch(input, init);
   });
@@ -190,7 +195,17 @@ test("SIWC Settings account actions stay authenticated, credential-free and dura
       picker.attempt.prompt.options.map((option: { id: string }) => option.id),
       ["account-one", "account-two"],
     );
-    await value("cancel");
+    const staleAnswer = await (
+      await request("answer", true, { attemptId: "stale-attempt", choice: "account-one" })
+    ).json();
+    assert.equal(staleAnswer.result.ok, false);
+    assert.equal(staleAnswer.result.error.code, "siwc/action-failed");
+    await value("cancel", { attemptId: picker.attempt.id });
+    const staleCancel = await (
+      await request("cancel", true, { attemptId: "stale-attempt" })
+    ).json();
+    assert.equal(staleCancel.result.ok, false);
+    assert.equal(staleCancel.result.error.code, "siwc/action-failed");
 
     const switched = (await value("authorize", { method: "select", accountId: "account-two" }))
       .status;
@@ -211,7 +226,7 @@ test("SIWC Settings account actions stay authenticated, credential-free and dura
     }
     assert.match(signingIn.attempt.notice.url, /^http:\/\/127\.0\.0\.1:\d+\/auth\/start\?state=/);
     assert.doesNotMatch(JSON.stringify(signingIn), /private-|id_token_hint/);
-    const cancelled = (await value("cancel")).status;
+    const cancelled = (await value("cancel", { attemptId: signingIn.attempt.id })).status;
     assert.equal(cancelled.attempt.phase, "cancelled");
     assert.equal((await accounts.read()).activeId, "account-two");
 
@@ -238,7 +253,37 @@ test("SIWC Settings account actions stay authenticated, credential-free and dura
         expires: Date.now() + 3600000,
         scopes: ["chatgpt.tokens.use.direct"],
       };
+      state.accounts[1].tokens = {
+        access: "private-access-two",
+        refresh: "private-refresh-two",
+        expires: Date.now() + 3600000,
+        scopes: ["chatgpt.tokens.use.direct"],
+      };
     });
+    revokeDelay = 50;
+    const beforeConcurrentRevoke = revokeCalls;
+    const concurrentLogout = value("logout");
+    for (let i = 0; i < 50 && revokeCalls === beforeConcurrentRevoke; i++) await delay(5);
+    assert.equal(revokeCalls, beforeConcurrentRevoke + 1);
+    let authorizationSettled = false;
+    const concurrentAuthorization = value("authorize", {
+      method: "select",
+      accountId: "account-two",
+    }).then((result) => {
+      authorizationSettled = true;
+      return result;
+    });
+    await delay(10);
+    assert.equal(authorizationSettled, false, "authorization must wait for logout");
+    await concurrentLogout;
+    const afterLogout = (await concurrentAuthorization).status;
+    for (let i = 0; i < 50 && afterLogout.attempt.phase === "running"; i++) {
+      Object.assign(afterLogout, await value("status"));
+      if (afterLogout.attempt.phase === "running") await delay(10);
+    }
+    assert.equal(afterLogout.attempt.phase, "authorized");
+    assert.equal((await accounts.read()).activeId, "account-two");
+    revokeDelay = 0;
     revokeStatus = 400;
     const unconfirmed = await value("logout");
     assert.match(unconfirmed.message, /Remote revocation was not confirmed/);

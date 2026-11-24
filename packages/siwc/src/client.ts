@@ -18,9 +18,8 @@ const styles = `
 .siwc-settings select,.siwc-settings button{font:inherit;color:inherit;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l4);border-radius:8px;padding:8px 12px;min-height:36px}
 .siwc-settings select{width:100%;min-width:0}.siwc-settings button{width:fit-content;min-width:0;max-width:100%;overflow-wrap:anywhere;cursor:pointer}.siwc-settings button:disabled,.siwc-settings select:disabled{opacity:.5;cursor:default}
 .siwc-settings :is(button,select,a):focus-visible{outline:2px solid var(--dsw-alias-link);outline-offset:3px}.siwc-settings a{color:var(--dsw-alias-link);overflow-wrap:anywhere}.siwc-settings .siwc-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.siwc-settings [role=alert]{color:var(--dsw-alias-label-primary)}
-.siwc-settings .siwc-account-line{display:flex;align-items:center;gap:8px;min-width:0}.siwc-settings .siwc-icon-button{display:inline-flex;flex:none;align-items:center;justify-content:center;width:36px;padding:0}
+.siwc-settings .siwc-account-line{display:flex;align-items:center;gap:8px;min-width:0}.siwc-settings .siwc-account-line select{flex:1;width:auto}.siwc-settings .siwc-icon-button{display:inline-flex;flex:none;align-items:center;justify-content:center;width:36px;padding:0}
 .siwc-settings .siwc-confirm,.siwc-settings .siwc-attempt{display:grid;gap:8px;padding:12px;border:1px solid var(--dsw-alias-border-l4);border-radius:8px}
-.siwc-settings .siwc-saved{display:grid;gap:6px}.siwc-settings .siwc-account-list{display:grid;gap:6px;margin:0;padding:0;list-style:none}.siwc-settings .siwc-account-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.siwc-settings .siwc-account-row>span:first-child{overflow-wrap:anywhere}
 `;
 
 function parseAccount(value: unknown): SiwcAccount {
@@ -104,11 +103,15 @@ export function apply(ctx: Context): void {
     );
   const answer = async (
     choice: string,
+    attemptId: string,
     signal?: AbortSignal,
   ): Promise<{ status: SiwcStatus; message?: string }> =>
-    parseStatusResult(await call("siwc/answer", { choice }, signal));
-  const cancel = async (signal?: AbortSignal): Promise<{ status: SiwcStatus; message?: string }> =>
-    parseStatusResult(await call("siwc/cancel", {}, signal));
+    parseStatusResult(await call("siwc/answer", { choice, attemptId }, signal));
+  const cancel = async (
+    attemptId: string,
+    signal?: AbortSignal,
+  ): Promise<{ status: SiwcStatus; message?: string }> =>
+    parseStatusResult(await call("siwc/cancel", { attemptId }, signal));
   const logout = async (signal?: AbortSignal): Promise<{ status: SiwcStatus; message?: string }> =>
     parseStatusResult(await call("siwc/logout", {}, signal));
   const subscribeReset = (listener: () => void) => ctx.on("connection/reset", listener);

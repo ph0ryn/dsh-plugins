@@ -1,10 +1,18 @@
-import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
-import { AuthorizationDeclinedError } from "@deepseek-ai/dsh-authorization";
+import { AuthorizationDeclinedError, AuthorizationError } from "@deepseek-ai/dsh-authorization";
 
-import { accountLabel, Accounts, KEY, hostId } from "./accounts.ts";
-import { USAGE_URL, listModels, revoke, signIn, type Account } from "./oauth.ts";
+import { accountLabel, Accounts, KEY, hostId, parseState } from "./accounts.ts";
+import {
+  IdentityUnavailable,
+  OpenAIConnectionError,
+  OpenAIError,
+  USAGE_URL,
+  listModels,
+  revoke,
+  signIn,
+  type Account,
+} from "./oauth.ts";
 
 import type { SiwcAccount, SiwcActionResult, SiwcAttempt, SiwcStatus } from "./settingsContract.ts";
 import type { Context } from "@deepseek-ai/cordis";
@@ -13,6 +21,27 @@ import type {
   AuthorizationPrompt,
   AuthorizationSession,
 } from "@deepseek-ai/dsh-authorization";
+
+export class SiwcAccountError extends Error {
+  name = "SiwcAccountError";
+}
+
+/** Only fixed, user-safe errors may cross the Settings RPC boundary. */
+export function settingsErrorMessage(error: unknown): string {
+  if (
+    error instanceof AuthorizationDeclinedError ||
+    (error instanceof AuthorizationError && error.code === "CANCELLED")
+  )
+    return "Sign-in cancelled.";
+  if (
+    error instanceof SiwcAccountError ||
+    error instanceof OpenAIConnectionError ||
+    error instanceof OpenAIError ||
+    error instanceof IdentityUnavailable
+  )
+    return error.message;
+  return "Could not finish the account action. Try again.";
+}
 
 interface PendingPrompt {
   prompt: Extract<AuthorizationPrompt, { kind: "select" }>;
@@ -34,6 +63,7 @@ interface RunningAttempt {
 export class SiwcAccountSettings {
   private current?: RunningAttempt;
   private preferredAccountId?: string;
+  private operations: Promise<void> = Promise.resolve();
   private readonly ctx: Context;
   private readonly accounts: Accounts;
   private readonly syncAdapter: () => Promise<void>;
@@ -66,14 +96,21 @@ export class SiwcAccountSettings {
     };
   }
 
-  async authorize(method: "oauth" | "select", accountId?: string): Promise<SiwcActionResult> {
+  authorize(method: "oauth" | "select", accountId?: string): Promise<SiwcActionResult> {
+    return this.enqueue(() => this.startAuthorize(method, accountId));
+  }
+
+  private async startAuthorize(
+    method: "oauth" | "select",
+    accountId?: string,
+  ): Promise<SiwcActionResult> {
     if (this.current?.phase === "running") return { status: await this.status() };
     if (accountId !== undefined) {
-      if (!accountId) throw new Error("Choose a saved ChatGPT account.");
+      if (!accountId) throw new SiwcAccountError("Choose a saved ChatGPT account.");
       if (accountId !== "new") {
         const state = await this.accounts.read();
         if (!state.accounts.some((account) => account.id === accountId))
-          throw new Error("Saved ChatGPT account not found.");
+          throw new SiwcAccountError("Saved ChatGPT account not found.");
       }
     }
     const attempt: RunningAttempt = {
@@ -101,15 +138,15 @@ export class SiwcAccountSettings {
           message:
             attempt.phase === "authorized"
               ? "ChatGPT account connected."
-              : "Sign-in cancelled. Your saved accounts were not changed.",
+              : "Sign-in cancelled. Your active account was not changed.",
         };
         attempt.pending = undefined;
       })
       .catch((error: unknown) => {
         attempt.phase = "failed";
-        attempt.error = this.errorMessage(error);
+        attempt.error = settingsErrorMessage(error);
         attempt.pending = undefined;
-        this.ctx.logger.warn("SIWC Settings authorization failed: %s", this.errorMessage(error));
+        this.ctx.logger.warn("SIWC Settings authorization failed: %s", settingsErrorMessage(error));
       })
       .finally(() => {
         if (this.current === attempt) this.preferredAccountId = undefined;
@@ -117,28 +154,37 @@ export class SiwcAccountSettings {
     return { status: await this.status() };
   }
 
-  async answer(choice: string): Promise<SiwcActionResult> {
+  async answer(choice: string, attemptId: string): Promise<SiwcActionResult> {
     const attempt = this.current;
-    if (attempt?.phase !== "running" || !attempt.pending)
-      throw new Error("There is no sign-in question to answer.");
+    if (attempt?.id !== attemptId)
+      throw new SiwcAccountError("This sign-in attempt is no longer active.");
+    if (attempt.phase !== "running" || !attempt.pending)
+      throw new SiwcAccountError("There is no sign-in question to answer.");
     const pending = attempt.pending;
     if (!pending.prompt.options.some((option) => option.id === choice))
-      throw new Error("Choose one of the available sign-in options.");
+      throw new SiwcAccountError("Choose one of the available sign-in options.");
     pending.resolve(choice);
     return { status: await this.status() };
   }
 
-  async cancel(): Promise<SiwcActionResult> {
+  async cancel(attemptId: string): Promise<SiwcActionResult> {
     const attempt = this.current;
-    if (attempt?.phase !== "running") return { status: await this.status() };
+    if (attempt?.id !== attemptId)
+      throw new SiwcAccountError("This sign-in attempt is no longer active.");
+    if (attempt.phase !== "running") return { status: await this.status() };
     attempt.controller.abort();
     this.ctx.authorization.cancel(KEY);
     await attempt.done;
     return { status: await this.status() };
   }
 
-  async logout(): Promise<SiwcActionResult> {
-    if (this.current?.phase === "running") await this.cancel();
+  logout(): Promise<SiwcActionResult> {
+    return this.enqueue(() => this.performLogout());
+  }
+
+  private async performLogout(): Promise<SiwcActionResult> {
+    const attempt = this.current;
+    if (attempt?.phase === "running") await this.cancel(attempt.id);
     let revocationConfirmed = true;
     await this.accounts.change(async (state) => {
       const active = state.accounts.find((account) => account.id === state.activeId);
@@ -157,7 +203,7 @@ export class SiwcAccountSettings {
       delete state.activeId;
     });
     await this.syncAdapter();
-    this.current = undefined;
+    if (this.current === attempt) this.current = undefined;
     return {
       status: await this.status(),
       message: revocationConfirmed
@@ -178,17 +224,16 @@ export class SiwcAccountSettings {
     }));
     if (session.method === "oauth")
       options.push({ id: "new", label: "Add ChatGPT account or workspace" });
-    assert.ok(options.length, "Sign in with ChatGPT in Settings first.");
+    if (!options.length) throw new SiwcAccountError("Sign in with ChatGPT in Settings first.");
     const preferred = this.preferredAccountId;
     let id: string;
     if (preferred === "new") {
-      assert.ok(session.method === "oauth", "Only sign-in can add a ChatGPT account.");
+      if (session.method !== "oauth")
+        throw new SiwcAccountError("Only sign-in can add a ChatGPT account.");
       id = "new";
     } else if (preferred !== undefined) {
-      assert.ok(
-        selectable.some((account) => account.id === preferred),
-        "This saved ChatGPT account cannot be selected.",
-      );
+      if (!selectable.some((account) => account.id === preferred))
+        throw new SiwcAccountError("This saved ChatGPT account cannot be selected.");
       id = preferred;
     } else if (options.length === 1) {
       id = options[0].id;
@@ -201,21 +246,26 @@ export class SiwcAccountSettings {
       });
     }
     const selected = state.accounts.find((account) => account.id === id);
-    assert.ok(id === "new" || selected, "Unknown ChatGPT account");
+    if (id !== "new" && !selected) throw new SiwcAccountError("Unknown ChatGPT account.");
+    const initialAccess = selected?.tokens?.access;
+    const initialSubject = selected?.subject;
     const account: Account = selected ?? { id: randomUUID(), clientId: "dynamic_agent_client" };
     if (session.method === "oauth") {
       const identity = await signIn(session, await hostId(), account, async (clientId) => {
         session.signal.throwIfAborted();
         account.clientId = clientId;
         await this.accounts.change((current) => {
+          session.signal.throwIfAborted();
           const saved = current.accounts.find((entry) => entry.id === account.id);
           if (saved) saved.clientId = clientId;
           else current.accounts.push({ ...account, clientId });
+          session.signal.throwIfAborted();
         });
       });
       Object.assign(account, identity);
     }
-    assert.ok(account.tokens, "This account is signed out. Reconnect it in Settings.");
+    if (!account.tokens)
+      throw new SiwcAccountError("This account is signed out. Reconnect it in Settings.");
     const access =
       session.method === "oauth"
         ? account.tokens.access
@@ -232,18 +282,27 @@ export class SiwcAccountSettings {
       });
     }
     session.signal.throwIfAborted();
-    await this.accounts.change((current) => {
-      session.signal.throwIfAborted();
-      const saved = current.accounts.find((entry) => entry.id === account.id);
-      assert.ok(saved, "ChatGPT registration was removed during sign-in. Please retry.");
-      if (session.method === "oauth") {
-        Object.assign(saved, account);
-        delete saved.pending;
-      }
-      saved.models = models;
-      current.activeId = account.id;
-      current.welcomed = true;
-    });
+    const record = await this.accounts.credentials.readRecord(KEY);
+    const current = parseState(record);
+    const saved = current.accounts.find((entry) => entry.id === account.id);
+    if (!saved)
+      throw new SiwcAccountError("ChatGPT registration was removed during sign-in. Please retry.");
+    if (session.method === "oauth") {
+      if (
+        saved.clientId !== account.clientId ||
+        (selected !== undefined && saved.subject !== initialSubject) ||
+        (selected !== undefined && saved.tokens?.access !== initialAccess)
+      )
+        throw new SiwcAccountError("ChatGPT account changed during sign-in. Please retry.");
+      Object.assign(saved, account);
+      delete saved.pending;
+    } else if (!saved.tokens || saved.tokens.access !== access) {
+      throw new SiwcAccountError("ChatGPT account changed while switching. Please retry.");
+    }
+    saved.models = models;
+    current.activeId = account.id;
+    current.welcomed = true;
+    await session.commit({ kind: "grant", payload: current });
     await this.syncAdapter();
     session.notify({ message: "Using ChatGPT plan. Manage usage", url: USAGE_URL });
   }
@@ -251,6 +310,15 @@ export class SiwcAccountSettings {
   dispose(): void {
     this.current?.controller.abort();
     if (this.current?.phase === "running") this.ctx.authorization.cancel(KEY);
+  }
+
+  private enqueue<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.operations.then(operation, operation);
+    this.operations = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
   }
 
   private notify(attempt: RunningAttempt, notice: AuthorizationNotice): void {
@@ -263,8 +331,9 @@ export class SiwcAccountSettings {
 
   private prompt(attempt: RunningAttempt, prompt: AuthorizationPrompt): Promise<string> {
     if (prompt.kind !== "select")
-      return Promise.reject(new Error("This sign-in step does not accept typed input."));
-    if (attempt.pending) return Promise.reject(new Error("A sign-in question is already open."));
+      return Promise.reject(new SiwcAccountError("This sign-in step does not accept typed input."));
+    if (attempt.pending)
+      return Promise.reject(new SiwcAccountError("A sign-in question is already open."));
     return new Promise((resolve, reject) => {
       const cleanup = () => {
         attempt.pending = undefined;
@@ -272,7 +341,7 @@ export class SiwcAccountSettings {
       };
       const abort = () => {
         cleanup();
-        reject(new AuthorizationDeclinedError());
+        reject(new SiwcAccountError("Sign-in prompt was withdrawn."));
       };
       attempt.pending = {
         prompt,
@@ -303,12 +372,5 @@ export class SiwcAccountSettings {
         : {}),
       ...(attempt.error ? { error: attempt.error } : {}),
     };
-  }
-
-  private errorMessage(error: unknown): string {
-    if (error instanceof AuthorizationDeclinedError) return "Sign-in cancelled.";
-    return error instanceof Error
-      ? error.message
-      : "Could not finish the account action. Try again.";
   }
 }

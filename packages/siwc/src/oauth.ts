@@ -100,20 +100,29 @@ async function json(url: string, init: RequestInit = {}): Promise<Record<string,
   if (!response.ok) {
     let code: string | undefined;
     if (response.headers.get("content-type")?.includes("json")) {
-      const data: unknown = await response.json();
-      object(data);
-      if (typeof data.error === "string") code = data.error;
-      else if (
-        data.error &&
-        typeof data.error === "object" &&
-        "code" in data.error &&
-        typeof data.error.code === "string"
-      )
-        code = data.error.code;
+      try {
+        const data: unknown = await response.json();
+        object(data);
+        if (typeof data.error === "string") code = data.error;
+        else if (
+          data.error &&
+          typeof data.error === "object" &&
+          "code" in data.error &&
+          typeof data.error.code === "string"
+        )
+          code = data.error.code;
+      } catch {
+        code = undefined;
+      }
     }
     throw new OpenAIError(response.status, code, response.headers.get("x-request-id"));
   }
-  const data: unknown = await response.json();
+  let data: unknown;
+  try {
+    data = await response.json();
+  } catch {
+    throw new OpenAIConnectionError("OpenAI returned an invalid JSON response.");
+  }
   object(data);
   return data;
 }

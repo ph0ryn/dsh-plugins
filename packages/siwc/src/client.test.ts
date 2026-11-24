@@ -75,12 +75,6 @@ function text(node: unknown): string {
 
 function actions() {
   const calls: [string, ...unknown[]][] = [];
-  const action =
-    (name: string, value: SiwcStatus = status) =>
-    async (arg?: unknown) => {
-      calls.push(arg === undefined ? [name] : [name, arg]);
-      return { status: value };
-    };
   return {
     calls,
     authorize: async (method: "oauth" | "select", accountId?: string) => {
@@ -100,16 +94,31 @@ function actions() {
         },
       } satisfies SiwcActionResult;
     },
-    answer: action("answer"),
-    cancel: action("cancel", {
-      ...status,
-      attempt: { id: "attempt-one", method: "oauth", phase: "cancelled" },
-    }),
-    logout: action("logout", {
-      accounts: [{ id: "one", label: "one@example.test (one)", active: false, signedIn: false }],
-      models: [],
-      usageUrl: status.usageUrl,
-    }),
+    answer: async (choice: string, attemptId: string) => {
+      calls.push(["answer", choice, attemptId]);
+      return { status };
+    },
+    cancel: async (attemptId: string): Promise<SiwcActionResult> => {
+      calls.push(["cancel", attemptId]);
+      return {
+        status: {
+          ...status,
+          attempt: { id: attemptId, method: "oauth", phase: "cancelled" },
+        },
+      };
+    },
+    logout: async () => {
+      calls.push(["logout"]);
+      return {
+        status: {
+          accounts: [
+            { id: "one", label: "one@example.test (one)", active: false, signedIn: false },
+          ],
+          models: [],
+          usageUrl: status.usageUrl,
+        },
+      };
+    },
   };
 }
 
@@ -141,7 +150,15 @@ function button(view: ReturnType<typeof create>, label: string) {
   return found;
 }
 
-test("Settings center the account and place icon refresh beside the identity", async () => {
+function accountSelect(view: ReturnType<typeof create>) {
+  return view.root.findByProps({ "aria-label": "ChatGPT account" });
+}
+
+function modelSelect(view: ReturnType<typeof create>) {
+  return view.root.findAllByType("select").find((node) => node.props.id?.endsWith("-model"))!;
+}
+
+test("Settings use an account dropdown and place icon refresh beside it", async () => {
   const view = await mount();
   const content = JSON.stringify(view.toJSON());
   assert.match(content, /one@example\.test/);
@@ -150,13 +167,21 @@ test("Settings center the account and place icon refresh beside the identity", a
   const identity = view.root.findByProps({ className: "siwc-account-line" });
   assert.deepEqual(
     identity.children.map((child) => (typeof child === "string" ? child : child.type)),
-    ["p", "button"],
+    ["select", "button"],
   );
   const refresh = identity.findByProps({ "data-action": "refresh-account" });
   assert.equal(refresh.props["aria-label"], "Refresh account");
   assert.equal(refresh.props.title, "Refresh account");
   assert.equal(refresh.findAllByType("svg").length, 1);
-  assert.equal(text(button(view, "Add account")), "Add account");
+  const select = accountSelect(view);
+  assert.equal(select.props.value, "one");
+  assert.deepEqual(
+    select.findAllByType("option").map((node) => node.props.value),
+    ["", "one", "two", "new"],
+  );
+  assert.match(text(select), /Active/);
+  assert.match(text(select), /Signed in/);
+  assert.match(text(select), /Add account/);
   assert.equal(text(button(view, "Sign out")), "Sign out");
   assert.equal(view.root.findByType("a").props.href, status.usageUrl);
   assert.equal(view.root.findAllByProps({ className: "siwc-group" }).length, 3);
@@ -169,7 +194,7 @@ test("Settings select account models without automatically changing search provi
   const view = await mount(siwc.scope, web.scope);
   assert.deepEqual(siwc.writes, []);
   assert.deepEqual(web.writes, []);
-  const select = view.root.findByType("select");
+  const select = modelSelect(view);
   assert.deepEqual(
     select.findAllByType("option").map((node) => node.props.value),
     ["", "model-one", "model-two"],
@@ -208,6 +233,7 @@ test("Settings distinguish status failures from sign-out and refresh on connecti
   });
   assert.match(JSON.stringify(view.toJSON()), /Could not load your ChatGPT account/);
   assert.doesNotMatch(JSON.stringify(view.toJSON()), /Not signed in|chatgpt login/);
+  assert.equal(accountSelect(view).props.disabled, true);
   assert.ok(view.root.findByProps({ role: "alert" }));
   await act(async () => reset!());
   assert.equal(calls, 2);
@@ -230,7 +256,7 @@ test("Settings restore the host default and respect read-only forms", async () =
   const snapshot = { ...siwc.scope.getSnapshot(), writable: false };
   siwc.scope.getSnapshot = () => snapshot;
   const readOnly = await mount(siwc.scope, web.scope);
-  assert.equal(readOnly.root.findByType("select").props.disabled, true);
+  assert.equal(modelSelect(readOnly).props.disabled, true);
   assert.match(JSON.stringify(readOnly.toJSON()), /read-only/);
   await act(async () => readOnly.unmount());
 });
@@ -239,7 +265,7 @@ test("Settings require reselection after an account model becomes unavailable", 
   const siwc = form({ searchModel: "model-no-longer-available" });
   const web = form({ searchProvider: "deepseek-official" });
   const view = await mount(siwc.scope, web.scope);
-  assert.equal(view.root.findByType("select").props.value, "");
+  assert.equal(modelSelect(view).props.value, "");
   const use = view.root.findByProps({ "data-action": "use-siwc" });
   assert.equal(use.props.disabled, true);
   assert.match(JSON.stringify(view.toJSON()), /Select a search model/i);
@@ -264,17 +290,18 @@ test("Settings surface refused writes and signed-out status without a billing fa
       usageUrl: status.usageUrl,
     }),
   });
-  assert.equal(signedOut.root.findByType("select").props.disabled, true);
-  assert.equal(text(button(signedOut, "Sign in with ChatGPT")), "Sign in with ChatGPT");
-  assert.match(JSON.stringify(signedOut.toJSON()), /Reconnect/);
+  assert.equal(modelSelect(signedOut).props.disabled, true);
+  assert.equal(accountSelect(signedOut).props.disabled, false);
+  assert.match(text(accountSelect(signedOut)), /Signed out/);
+  assert.match(text(accountSelect(signedOut)), /Add account/);
   assert.deepEqual(web.writes, []);
   await act(async () => signedOut.unmount());
 });
 
-test("Settings start and cancel OAuth without leaving the page", async () => {
+test("Settings start and cancel OAuth from the account dropdown", async () => {
   const accountActions = actions();
   const view = await mount(undefined, undefined, accountActions);
-  await act(async () => button(view, "Add account").props.onClick());
+  await act(async () => accountSelect(view).props.onChange({ currentTarget: { value: "new" } }));
   assert.deepEqual(accountActions.calls, [["authorize", "oauth", "new"]]);
   assert.match(JSON.stringify(view.toJSON()), /Connecting account/);
   const link = view.root
@@ -282,16 +309,15 @@ test("Settings start and cancel OAuth without leaving the page", async () => {
     .find((node) => node.props.href === "http://127.0.0.1:4321/auth/start?state=fixture")!;
   assert.equal(link.props.target, "_blank");
   await act(async () => button(view, "Cancel sign-in").props.onClick());
-  assert.deepEqual(accountActions.calls.at(-1), ["cancel"]);
+  assert.deepEqual(accountActions.calls.at(-1), ["cancel", "attempt-one"]);
   assert.match(JSON.stringify(view.toJSON()), /Sign-in cancelled/);
   await act(async () => view.unmount());
 });
 
-test("Settings switch or reconnect saved accounts inline", async () => {
+test("Settings switch or reconnect saved accounts from the dropdown", async () => {
   const accountActions = actions();
   const view = await mount(undefined, undefined, accountActions);
-  const switchButton = view.root.findByProps({ "data-action": "switch-account" });
-  await act(async () => switchButton.props.onClick());
+  await act(async () => accountSelect(view).props.onChange({ currentTarget: { value: "two" } }));
   assert.deepEqual(accountActions.calls.at(-1), ["authorize", "select", "two"]);
   await act(async () => view.unmount());
 
@@ -308,13 +334,13 @@ test("Settings switch or reconnect saved accounts inline", async () => {
     loadStatus: async () => accountStatus,
   });
   await act(async () =>
-    reconnect.root.findByProps({ "data-action": "reconnect-account" }).props.onClick(),
+    accountSelect(reconnect).props.onChange({ currentTarget: { value: "one" } }),
   );
   assert.deepEqual(accountActions.calls.at(-1), ["authorize", "oauth", "one"]);
   await act(async () => reconnect.unmount());
 });
 
-test("Settings answer account choices and confirm sign out before deleting tokens", async () => {
+test("Settings answer the visible attempt and confirm sign out before deleting tokens", async () => {
   const accountActions = actions();
   const prompted: SiwcStatus = {
     ...status,
@@ -337,7 +363,7 @@ test("Settings answer account choices and confirm sign out before deleting token
     loadStatus: async () => prompted,
   });
   await act(async () => button(view, "Add ChatGPT account or workspace").props.onClick());
-  assert.deepEqual(accountActions.calls, [["answer", "new"]]);
+  assert.deepEqual(accountActions.calls, [["answer", "new", "attempt-one"]]);
   await act(async () => view.unmount());
 
   const confirmView = await mount(undefined, undefined, accountActions);

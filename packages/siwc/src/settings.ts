@@ -1,6 +1,6 @@
 import { clientRequestSchema } from "@deepseek-ai/dsh-client-connection";
 
-import { SiwcAccountSettings } from "./accountSettings.ts";
+import { SiwcAccountSettings, settingsErrorMessage } from "./accountSettings.ts";
 
 import type { Context } from "@deepseek-ai/cordis";
 import type { ConnectionRpcHandlerResult } from "@deepseek-ai/dsh-client-connection";
@@ -47,16 +47,27 @@ async function dispatch(
     if (endpoint === "answer") {
       if (
         !record(payload) ||
-        Object.keys(payload).length !== 1 ||
+        Object.keys(payload).length !== 2 ||
+        typeof payload.attemptId !== "string" ||
+        !payload.attemptId ||
         typeof payload.choice !== "string" ||
         !payload.choice
       )
         return failure("Choose one of the available sign-in options.");
-      return { ok: true, value: await settings.answer(payload.choice) };
+      return {
+        ok: true,
+        value: await settings.answer(payload.choice, payload.attemptId),
+      };
     }
     if (endpoint === "cancel") {
-      if (!empty(payload)) return failure("SIWC cancel takes no parameters.");
-      return { ok: true, value: await settings.cancel() };
+      if (
+        !record(payload) ||
+        Object.keys(payload).length !== 1 ||
+        typeof payload.attemptId !== "string" ||
+        !payload.attemptId
+      )
+        return failure("Choose an active SIWC sign-in attempt.");
+      return { ok: true, value: await settings.cancel(payload.attemptId) };
     }
     if (endpoint === "logout") {
       if (!empty(payload)) return failure("SIWC logout takes no parameters.");
@@ -64,8 +75,7 @@ async function dispatch(
     }
     return failure("Unknown SIWC Settings action.");
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Could not complete the SIWC Settings action.";
+    const message = settingsErrorMessage(error);
     ctx.logger.warn("SIWC Settings action %s failed: %s", endpoint, message);
     return {
       ok: false,

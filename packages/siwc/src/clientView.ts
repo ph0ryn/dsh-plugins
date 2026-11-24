@@ -12,8 +12,8 @@ export interface SiwcSettingsPageProps {
     accountId?: string,
     signal?: AbortSignal,
   ): Promise<SiwcActionResult>;
-  answer(choice: string, signal?: AbortSignal): Promise<SiwcActionResult>;
-  cancel(signal?: AbortSignal): Promise<SiwcActionResult>;
+  answer(choice: string, attemptId: string, signal?: AbortSignal): Promise<SiwcActionResult>;
+  cancel(attemptId: string, signal?: AbortSignal): Promise<SiwcActionResult>;
   logout(signal?: AbortSignal): Promise<SiwcActionResult>;
   subscribeReset?(listener: () => void): () => void;
 }
@@ -166,18 +166,38 @@ export function SiwcSettingsPage({
       !loading &&
         status &&
         !status.account &&
-        h("p", { className: "siwc-hint" }, "Sign in with ChatGPT, or reconnect a saved account."),
+        h("p", { className: "siwc-hint" }, "Choose a saved account to reconnect, or Add account…"),
       h(
         "div",
         { className: "siwc-account-line" },
         h(
-          "p",
-          { className: "siwc-state", role: "status" },
-          loading
-            ? "Loading account…"
-            : status
-              ? (status.account?.label ?? "Not signed in")
-              : "Account status unavailable",
+          "select",
+          {
+            id: `${id}-account`,
+            "aria-label": "ChatGPT account",
+            value: status?.account?.id ?? "",
+            disabled: accountBusy || !status,
+            onChange: (event: { currentTarget: { value: string } }) => {
+              const value = event.currentTarget.value;
+              if (value === "new") return perform(() => authorize("oauth", "new"));
+              const account = status?.accounts.find((entry) => entry.id === value);
+              if (account)
+                return perform(() => authorize(account.signedIn ? "select" : "oauth", account.id));
+            },
+          },
+          h(
+            "option",
+            { value: "", disabled: true },
+            loading ? "Loading account…" : status ? "Not signed in" : "Account status unavailable",
+          ),
+          ...(status?.accounts ?? []).map((account) =>
+            h(
+              "option",
+              { key: account.id, value: account.id },
+              `${account.label} — ${account.active ? "Active" : account.signedIn ? "Signed in" : "Signed out"}`,
+            ),
+          ),
+          h("option", { value: "new" }, "Add account…"),
         ),
         h(
           "button",
@@ -196,37 +216,6 @@ export function SiwcSettingsPage({
       h(
         "div",
         { className: "siwc-actions" },
-        !status?.account &&
-          h(
-            "button",
-            {
-              type: "button",
-              disabled: accountBusy,
-              onClick: () => perform(() => authorize("oauth", "new")),
-            },
-            "Sign in with ChatGPT",
-          ),
-        status?.account &&
-          h(
-            "button",
-            {
-              type: "button",
-              disabled: accountBusy,
-              onClick: () => perform(() => authorize("oauth", "new")),
-            },
-            "Add account",
-          ),
-        !!status?.account &&
-          status.accounts.filter((account) => account.signedIn).length > 1 &&
-          h(
-            "button",
-            {
-              type: "button",
-              disabled: accountBusy,
-              onClick: () => perform(() => authorize("select")),
-            },
-            "Switch account",
-          ),
         status?.account &&
           h(
             "button",
@@ -278,43 +267,8 @@ export function SiwcSettingsPage({
         renderAttempt(
           attempt,
           saving,
-          () => perform(() => cancel()),
-          (choice) => perform(() => answer(choice)),
-        ),
-      (status?.accounts.length ?? 0) > 0 &&
-        (!status?.account || status.accounts.some((account) => !account.active)) &&
-        h(
-          "div",
-          { className: "siwc-saved" },
-          h("h4", null, "Saved accounts"),
-          h(
-            "ul",
-            { className: "siwc-account-list" },
-            ...(status?.accounts ?? []).map((account) =>
-              h(
-                "li",
-                { key: account.id, className: "siwc-account-row" },
-                h("span", null, account.label),
-                h(
-                  "span",
-                  { className: "siwc-hint" },
-                  account.active ? "Active" : account.signedIn ? "Signed in" : "Signed out",
-                ),
-                !account.active &&
-                  h(
-                    "button",
-                    {
-                      type: "button",
-                      disabled: accountBusy,
-                      "data-action": account.signedIn ? "switch-account" : "reconnect-account",
-                      onClick: () =>
-                        perform(() => authorize(account.signedIn ? "select" : "oauth", account.id)),
-                    },
-                    account.signedIn ? "Switch" : "Reconnect",
-                  ),
-              ),
-            ),
-          ),
+          () => perform(() => cancel(attempt.id)),
+          (choice) => perform(() => answer(choice, attempt.id)),
         ),
     ),
     h(
@@ -495,6 +449,6 @@ function renderAttempt(
       ? attempt.error
       : attempt.phase === "authorized"
         ? "ChatGPT account connected."
-        : "Sign-in cancelled. Your saved accounts were not changed.",
+        : "Sign-in cancelled. Your active account was not changed.",
   );
 }

@@ -63,3 +63,21 @@ test("listModels rejects malformed capability fields", async (t) => {
     await assert.rejects(listModels("access-token"));
   }
 });
+
+test("listModels hides malformed JSON bodies that may contain secrets", async (t) => {
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async () =>
+      new Response("private-access-token", {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+  );
+  await assert.rejects(listModels("access-token"), (error: unknown) => {
+    assert.ok(error instanceof Error);
+    assert.equal(error.message, "OpenAI returned an invalid JSON response.");
+    assert.doesNotMatch(error.message, /private-access-token/);
+    return true;
+  });
+});
