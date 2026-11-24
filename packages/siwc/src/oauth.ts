@@ -23,7 +23,7 @@ export class OpenAIError extends Error {
   requestId: string | null;
   constructor(status: number, code: string | undefined, requestId: string | null) {
     super(
-      `OpenAI request failed (${status}${code ? `: ${code}` : ""}). Reconnect with /chatgpt login; manage usage: ${USAGE_URL}`,
+      `OpenAI request failed (${status}${code ? `: ${code}` : ""}). Reconnect in Settings → SIWC; manage usage: ${USAGE_URL}`,
     );
     this.status = status;
     this.code = code;
@@ -223,7 +223,7 @@ async function tokenRequest(body: URLSearchParams, signal?: AbortSignal): Promis
 }
 
 export function refresh(account: Account, signal?: AbortSignal): Promise<Rotation> {
-  assert.ok(account.tokens, "Sign in with /chatgpt login first");
+  assert.ok(account.tokens, "Sign in with ChatGPT in Settings first");
   return tokenRequest(
     new URLSearchParams({
       grant_type: "refresh_token",

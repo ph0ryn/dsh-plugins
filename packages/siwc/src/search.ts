@@ -136,7 +136,7 @@ export function createSiwcSearchProvider(
         combined.throwIfAborted();
         const account = state.accounts.find((entry) => entry.id === state.activeId);
         if (!account?.tokens)
-          throw new WebError("Continue with ChatGPT using /chatgpt login.", "MISSING_CREDENTIAL");
+          throw new WebError("Continue with ChatGPT in Settings → SIWC.", "MISSING_CREDENTIAL");
         if (!account.models?.some((entry) => entry.id === selectedModel))
           throw new WebError(
             "The selected search model is not available for this ChatGPT account.",

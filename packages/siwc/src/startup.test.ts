@@ -232,7 +232,7 @@ for (const scenario of [
             ? /Check your connection/
             : new RegExp(scenario === "unauthorized" ? "401" : "503"),
         );
-        if (scenario === "unauthorized") assert.match(warnings[0], /\/chatgpt login/);
+        if (scenario === "unauthorized") assert.match(warnings[0], /Settings → SIWC/);
       } else {
         assert.deepEqual(warnings, []);
       }

@@ -77,6 +77,9 @@ export interface State {
   welcomed?: boolean;
 }
 
+export const accountLabel = (account: Account) =>
+  `${account.email ?? "Saved registration"} (${account.id.slice(0, 8)})`;
+
 export function parseState(record: CredentialRecord | undefined): State {
   if (record === undefined) return { version: 1, accounts: [] };
   assert.ok(record.kind === "grant", "Invalid SIWC credential record");
@@ -132,7 +135,7 @@ export class Accounts {
         (entry) => entry.id === (accountId ?? current.activeId),
       );
       if (!account?.tokens)
-        throw new LlmError("Continue with ChatGPT using /chatgpt login", "MISSING_CREDENTIAL");
+        throw new LlmError("Continue with ChatGPT in Settings → SIWC.", "MISSING_CREDENTIAL");
       const now = Date.now();
       if (rejectedAccess !== undefined && account.tokens.access !== rejectedAccess) return;
       if (

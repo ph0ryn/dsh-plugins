@@ -14,7 +14,6 @@ import Commands from "@deepseek-ai/dsh-commands";
 import Credentials from "@deepseek-ai/dsh-credentials-local";
 import Llm from "@deepseek-ai/dsh-llm";
 import Sessions from "@deepseek-ai/dsh-session";
-import Questions, { UserQuestionError } from "@deepseek-ai/dsh-user-questions";
 import { generateKeyPair, exportJWK, SignJWT } from "jose";
 
 import { Accounts, KEY, hostId } from "./accounts.ts";
@@ -75,8 +74,6 @@ test(
     let welcomed = 0;
     let accountSubject = "user-one";
     let unknownModel = false;
-    let revokeStatus = 200;
-    let revocations = 0;
     const refreshTokens = new Map<string, { clientId: string; subject: string }>();
     const requests: { path: string; auth?: string; body?: Record<string, unknown> }[] = [];
     const errors: unknown[] = [];
@@ -160,9 +157,8 @@ test(
           assert.equal(body.get("token_type_hint"), "refresh_token");
           assert.ok(refreshTokens.has(body.get("token")!));
           assert.equal(refreshTokens.get(body.get("token")!)!.clientId, body.get("client_id"));
-          revocations++;
-          if (revokeStatus === 200) refreshTokens.delete(body.get("token")!);
-          response.writeHead(revokeStatus).end();
+          refreshTokens.delete(body.get("token")!);
+          response.writeHead(200).end();
         } else if (path === "/v1/models") {
           requests.push({ path, auth: request.headers.authorization });
           response.writeHead(200, { "content-type": "application/json" });
@@ -371,7 +367,6 @@ test(
       await ctx.plugin(Sessions);
       await ctx.plugin(Agents);
       await ctx.plugin(Commands);
-      await ctx.plugin(Questions);
       await ctx.plugin(plugin);
     };
     const accounts = () => new Accounts(ctx.credentials);
@@ -735,71 +730,16 @@ test(
           /fetch failed/,
         );
       });
-      await t.test(
-        "native slash command displays the sign-in link, handles dismiss and retains registrations on logout",
-        async () => {
-          const session = ctx.sessions.create();
-          const agent = { id: session.id, session, ctx } as Agent;
-          await ctx.agents.register(agent);
-          let dismiss = true;
-          const stopAnswering = ctx.on("user-questions/request", async (request) => {
-            assert.equal(request.agent, agent);
-            if (dismiss) throw new UserQuestionError("Question closed", "ASK_ABORTED");
-            const question = request.questions[0];
-            if (question.question.startsWith("Open the sign-in")) {
-              const safeLink = question.detail!.match(/\]\((.*)\)$/)![1];
-              assert.equal(new URL(safeLink).searchParams.get("id_token_hint"), null);
-              const redirect = await realFetch(safeLink, { redirect: "manual" });
-              authorization = new URL(redirect.headers.get("location")!);
-              const url = new URL(authorization.searchParams.get("redirect_uri")!);
-              url.search = new URLSearchParams({
-                code: "fixture-code",
-                state: authorization.searchParams.get("state")!,
-              }).toString();
-              assert.equal((await realFetch(url)).status, 200);
-              return new Promise((_resolve, reject) => {
-                if (request.signal?.aborted) reject(request.signal.reason);
-                else
-                  request.signal?.addEventListener("abort", () => reject(request.signal!.reason), {
-                    once: true,
-                  });
-              });
-            }
-            return { answers: [{ id: "chatgpt", selected: [question.options![0].label] }] };
-          });
-          const command = (text: string) =>
-            ctx.commands.execute(agent, text, [], new AbortController().signal);
-          try {
-            const cancelled = await command("/chatgpt login");
-            assert.equal(cancelled!.result.kind, "error");
-            assert.match(cancelled!.result.text!, /cancelled/);
-            dismiss = false;
-            assert.equal((await command("/chatgpt login"))!.result.kind, "success");
-            assert.match((await command("/chatgpt status"))!.result.text!, /Using ChatGPT plan/);
-            const before = await accounts().read();
-            const host = await hostId();
-            const revokedBefore = revocations;
-            assert.equal((await command("/chatgpt logout"))!.result.kind, "success");
-            const after = await accounts().read();
-            assert.equal(after.activeId, undefined);
-            assert.equal(after.accounts[0].clientId, before.accounts[0].clientId);
-            assert.equal(after.accounts[0].tokens, undefined);
-            assert.equal(revocations, revokedBefore + 1);
-            assert.equal(await hostId(), host);
-            assert.equal((await command("/chatgpt login"))!.result.kind, "success");
-            assert.equal(authorization.searchParams.get("client_id"), before.accounts[0].clientId);
-            revokeStatus = 503;
-            const unavailable = await command("/chatgpt logout");
-            assert.match(unavailable!.result.text!, /Remote revocation was not confirmed/);
-            assert.equal((await accounts().read()).activeId, undefined);
-            assert.equal(revocations, revokedBefore + 4);
-            revokeStatus = 200;
-            assert.equal((await command("/chatgpt login"))!.result.kind, "success");
-          } finally {
-            await stopAnswering();
-          }
-        },
-      );
+      await t.test("SIWC no longer registers a chat command", async () => {
+        const session = ctx.sessions.create();
+        const agent = { id: session.id, session, ctx } as Agent;
+        await ctx.agents.register(agent);
+        assert.equal(ctx.commands.find(agent, "chatgpt"), undefined);
+        assert.equal(
+          await ctx.commands.execute(agent, "/chatgpt status", [], new AbortController().signal),
+          undefined,
+        );
+      });
       await t.test("failed code exchange retains the issued client ID for retry", async () => {
         const before = await accounts().read();
         tokenStatus = 400;
